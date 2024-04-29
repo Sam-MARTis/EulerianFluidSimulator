@@ -7,6 +7,8 @@ SIM_WIDTH = 200;
 SIM_HEIGHT = 100;
 GRAVITY = 9.8;
 TIME_STEP = 0.1;
+CELL_SIZE = 10;
+PRESSURE_CONSTANT = 0.1
 
 let cell_array = [];
 
@@ -50,12 +52,14 @@ class Cell {
     this.isWall = isWall;
     this.fluidBlockCount = 4;
     this.fluidBlocks = [1, 1, 1, 1]; //Left up right down
+    this.pressure = 0;
+  }
+  calculatePressure = () => {
+    this.pressure = PRESSURE_CONSTANT* this.divergence / (4*this.size);
   }
 
 
-  getFluidBlocksCount = () => {
-    return this.surroundingBlocks.filter((block) => block.isWall == 0).length;
-  };
+
 
   updateSurroundingBlocks = () => {
     let left = convertTo1D(this.x - 1, this.y);
@@ -63,10 +67,12 @@ class Cell {
     let up = convertTo1D(this.x, this.y - 1);
     let down = convertTo1D(this.x, this.y + 1);
 
+
     this.surroundingBlocks = [cell_array(left), cell_array(up), cell_array(right), cell_array(down)];
-    this.fluidBlockCount = this.getFluidBlocksCount();
+    this.fluidBlocks = this.surroundingBlocks.map((block) => !block.isWall);  
+    this.fluidBlockCount = this.fluidBlocks.reduce((prev, curr)=> {return prev + curr}); //Summing up fluidBlocks array
   }
-  
+
   sync = () => {
     this.surroundingBlocks[0].rightV = this.leftV;
     this.surroundingBlocks[1].downV = this.upV;
@@ -77,14 +83,12 @@ class Cell {
 
   gravity = () => {
     let accerlation = GRAVITY * TIME_STEP;
-    this.downV += accerlation;
-    this.upV -= accerlation;
+    this.downV += accerlation * this.fluidBlocks[3];
+    this.upV += accerlation * this.fluidBlocks[1];
 
   }
 
-
-  update = () => {
-    this.gravity();
+  handleDivergence = () => {
     this.divergence = this.rightV - this.leftV + this.downV - this.upV;
     let valueToMove =
       (this.overRelaxation * this.divergence) / this.fluidBlockCount;
@@ -93,6 +97,14 @@ class Cell {
     this.rightV = this.rightV + valueToMove * this.fluidBlocks[2];
     this.upV = this.upV - valueToMove * this.fluidBlocks[1];
     this.downV = this.downV + valueToMove * this.fluidBlocks[3];
+  }
+
+
+  update = () => {
+    this.gravity();
+    this.handleDivergence();
+
+    // this.sync(); //Will do this after a complete iteration
   };
 }
 
