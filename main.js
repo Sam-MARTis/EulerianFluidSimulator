@@ -7,8 +7,9 @@ SIM_WIDTH = 250;
 SIM_HEIGHT = 100;
 GRAVITY = 9.8;
 TIME_STEP = 0.1;
-CELL_SIZE = window.innerWidth*window.innerHeight*(devicePixelRatio**2)/(SIM_WIDTH*SIM_HEIGHT);
-PRESSURE_CONSTANT = 1
+// CELL_SIZE = window.innerWidth*window.innerHeight*(devicePixelRatio**2)/(SIM_WIDTH*SIM_HEIGHT);
+CELL_SIZE = 3;
+PRESSURE_CONSTANT = 10;
 BOUNDRY_VEL = 10;
 
 let cell_array = [];
@@ -31,7 +32,7 @@ class Cell {
     this.leftV = 0;
     this.rightV = 0;
     this.divergence = 0;
-    this.overRelaxation = 1;
+    this.overRelaxation = 1.4;
     this.surroundingBlocks = [];
     this.isWall = isWall;
     this.fluidBlockCount = 4;
@@ -39,7 +40,7 @@ class Cell {
     this.pressure = 0;
   }
   calculatePressure = () => {
-    this.pressure = (PRESSURE_CONSTANT * this.divergence) / (4 * this.size);
+    this.pressure = (PRESSURE_CONSTANT * (this.leftV**2 + this.rightV**2 + this.upV**2 + this.downV**2)) / (4);
   };
 
   updateSurroundingBlocks = () => {
@@ -76,9 +77,10 @@ class Cell {
   };
 
   gravity = () => {
-    let accerlation = GRAVITY * TIME_STEP;
-    this.downV += accerlation * this.fluidBlocks[3];
-    this.upV += accerlation * this.fluidBlocks[1];
+    // let accerlation = GRAVITY * TIME_STEP;
+    // this.downV += accerlation * this.fluidBlocks[3];
+    // this.upV += accerlation * this.fluidBlocks[1];
+    
   };
 
   handleDivergence = () => {
@@ -93,6 +95,7 @@ class Cell {
   };
 
   update = () => {
+    this.updateSurroundingBlocks();
     this.gravity();
     this.handleDivergence();
     this.calculatePressure();
@@ -125,17 +128,38 @@ const create_cells = () => {
         cell_array[convertTo1D(SIM_WIDTH - 1, j)].isWall = true;
         cell_array[convertTo1D(SIM_WIDTH - 1, j)].rightV = BOUNDRY_VEL;
         cell_array[convertTo1D(SIM_WIDTH - 1, j)].leftV = BOUNDRY_VEL;
+
+        cell_array[convertTo1D(SIM_WIDTH - 2, j)].rightV = BOUNDRY_VEL;
+        cell_array[convertTo1D(SIM_WIDTH - 2, j)].leftV = BOUNDRY_VEL;
     }
 }
 
 const traverse_cells = () => {
-    for(let j = 1; j < SIM_HEIGHT - 1; j++){
-        for(let i = 1; i < SIM_WIDTH - 1; i++){
-            cell_array[convertTo1D(i, j)].updateSurroundingBlocks();
+    for(let i = 1; i < SIM_WIDTH - 1; i++){
+        for(let j = 1; j < SIM_HEIGHT - 1; j++){
+        
+            cell_array[convertTo1D(i, j)].update();
         }
     }
-
 }
+const display_cells = () => {
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    ctx.fillStyle = "blue";
+    for (let i = 0; i < SIM_WIDTH * SIM_HEIGHT; i++) {
+      let [x, y] = convertTo2D(i);
+      if (cell_array[i].isWall) {
+        ctx.fillStyle = "green";
+      } else {
+        ctx.fillStyle = 'hsl(' + 0 + ',' + 0 + '%,' + (0 + cell_array[i].pressure * 0.0001) + '%)';
+        // console.log(cell_array[i].pressure)
+        if(i%100 ==0){
+            console.log(cell_array[i].pressure)
+        
+        }
+      }
+      ctx.fillRect(x * CELL_SIZE, y * CELL_SIZE, CELL_SIZE, CELL_SIZE);
+    }
+  }
 
 const init = () => {
     canvas = document.getElementById("fluid-simulator");
@@ -148,7 +172,18 @@ const init = () => {
     canvas.style.height = canvas.height + "px";
   
     // ctx.scale(devicePixelRatio, devicePixelRatio);
+    create_cells();
+    display_cells();
+    main_loop();
   };
+
+const main_loop = () => {
+    traverse_cells();
+    display_cells();
+    console.log("Looping")
+    requestAnimationFrame(main_loop);
+
+}
 
 
 
