@@ -8,22 +8,38 @@ SIM_HEIGHT = 100;
 GRAVITY = 9.8;
 TIME_STEP = 0.1;
 // CELL_SIZE = window.innerWidth*window.innerHeight*(devicePixelRatio**2)/(SIM_WIDTH*SIM_HEIGHT);
-CELL_SIZE = 3;
-PRESSURE_CONSTANT = 10;
-BOUNDRY_VEL = 10;
+CELL_SIZE = 5;
+PRESSURE_CONSTANT = 0.01;
+BOUNDRY_VEL = 0.1;
 
 let cell_array = [];
 
 const convertTo1D = (x, y) => {
-  return y * SIM_WIDTH + x;
+  return Math.floor(y) * SIM_WIDTH + Math.floor(x);
 };
 const convertTo2D = (index) => {
     return [index % SIM_WIDTH, Math.floor(index / SIM_WIDTH)];
 };
 
 //Structures and Classes
+class Source{
+    constructor(x, y, size, p=240){
+        this.x = x;
+        this.y = y;
+        this.size = size;
+        this.isWall = false;
+        this.rightV = 0;
+        this.flowV = 0
+        this.pressure = p;
+    }
+    update = () => {
+        let index = convertTo1D(this.x+1, this.y);
+        cell_array[index].rightV = this.flowV;
+    }
+
+}
 class Cell {
-  constructor(x, y, size, isWall=0) {
+  constructor(x, y, size,p=20, isWall=0) {
     this.x = x;
     this.y = y;
     this.size = size;
@@ -37,10 +53,10 @@ class Cell {
     this.isWall = isWall;
     this.fluidBlockCount = 4;
     this.fluidBlocks = [1, 1, 1, 1]; //Left up right down
-    this.pressure = 0;
+    this.pressure = p;
   }
   calculatePressure = () => {
-    this.pressure = (PRESSURE_CONSTANT * (this.leftV**2 + this.rightV**2 + this.upV**2 + this.downV**2)) / (4);
+    this.pressure += (PRESSURE_CONSTANT * (this.divergence)) / (CELL_SIZE * TIME_STEP);
   };
 
   updateSurroundingBlocks = () => {
@@ -77,11 +93,12 @@ class Cell {
   };
 
   gravity = () => {
-    // let accerlation = GRAVITY * TIME_STEP;
-    // this.downV += accerlation * this.fluidBlocks[3];
-    // this.upV += accerlation * this.fluidBlocks[1];
+    let accerlation = GRAVITY * TIME_STEP;
+    this.downV += accerlation * this.fluidBlocks[3];
+    this.upV += accerlation * this.fluidBlocks[1];
     
   };
+  
 
   handleDivergence = () => {
     this.divergence = this.rightV - this.leftV + this.downV - this.upV;
@@ -93,6 +110,20 @@ class Cell {
     this.upV = this.upV - valueToMove * this.fluidBlocks[1];
     this.downV = this.downV + valueToMove * this.fluidBlocks[3];
   };
+  advcectVelocity = () => {
+
+    //RightV
+    let rightBlock = this.surroundingBlocks[2];
+    if(!rightBlock.isWall){
+        let rightV_x = this.rightV;
+        let rightV_y = (this.upV + this.downV + rightBlock.upV + rightBlock.downV)/ 4;
+        let dx = rightV_x * TIME_STEP;
+        let dy = rightV_y * TIME_STEP;
+        let x = this.x +this.size + dx;
+        let y = this.y + (this.size/2)+ dy;
+    }
+
+  }
 
   update = () => {
     this.updateSurroundingBlocks();
@@ -101,41 +132,51 @@ class Cell {
     this.calculatePressure();
 
     this.sync(); //Will do this after a complete iteration //Nevermind
+    
 
   };
 }
 
 
 
+
 //Function definitions
+
+const findVelocityAtPoint = (X, Y) => {
+
+    
+}
 
 
 const create_cells = () => {
+    for(let j = 0; j< SIM_HEIGHT; j++){
+        cell_array.push(new Source(0, j, 1));
+    }
     
-    for (let i = 0; i < SIM_WIDTH * SIM_HEIGHT; i++) {
+    for (let i = SIM_HEIGHT; i < SIM_WIDTH * SIM_HEIGHT; i++) {
       let [x, y] = convertTo2D(i);
     //   let isWall = Math.random() > 0.5;
-      cell_array.push(new Cell(x, y, CELL_SIZE, 0));
+      cell_array.push(new Cell(x, y, CELL_SIZE, p=20, 0));
     }
-    for (let k = 0; k < SIM_WIDTH; k++) {
-        cell_array[convertTo1D(k, 0)].isWall = true;
-        cell_array[convertTo1D(k, SIM_HEIGHT - 1)].isWall = true;
-    }
-    for (let j = 0; j < SIM_HEIGHT; j++) {
-        cell_array[convertTo1D(0, j)].isWall = true;
-        cell_array[convertTo1D(0, j)].rightV = BOUNDRY_VEL;
-        cell_array[convertTo1D(0, j)].leftV = BOUNDRY_VEL;
-        cell_array[convertTo1D(SIM_WIDTH - 1, j)].isWall = true;
-        cell_array[convertTo1D(SIM_WIDTH - 1, j)].rightV = BOUNDRY_VEL;
-        cell_array[convertTo1D(SIM_WIDTH - 1, j)].leftV = BOUNDRY_VEL;
+    // for (let k = 0; k < SIM_WIDTH; k++) {
+    //     cell_array[convertTo1D(k, 0)].isWall = true;
+    //     cell_array[convertTo1D(k, SIM_HEIGHT - 1)].isWall = true;
+    // }
+    // for (let j = 0; j < SIM_HEIGHT; j++) {
+    //     cell_array[convertTo1D(0, j)].isWall = true;
+    //     cell_array[convertTo1D(0, j)].rightV = BOUNDRY_VEL;
+    //     cell_array[convertTo1D(0, j)].leftV = BOUNDRY_VEL;
+    //     cell_array[convertTo1D(SIM_WIDTH - 1, j)].isWall = true;
+    //     cell_array[convertTo1D(SIM_WIDTH - 1, j)].rightV = BOUNDRY_VEL;
+    //     cell_array[convertTo1D(SIM_WIDTH - 1, j)].leftV = BOUNDRY_VEL;
 
-        cell_array[convertTo1D(SIM_WIDTH - 2, j)].rightV = BOUNDRY_VEL;
-        cell_array[convertTo1D(SIM_WIDTH - 2, j)].leftV = BOUNDRY_VEL;
-    }
+    //     cell_array[convertTo1D(SIM_WIDTH - 2, j)].rightV = BOUNDRY_VEL;
+    //     cell_array[convertTo1D(SIM_WIDTH - 2, j)].leftV = BOUNDRY_VEL;
+    // }
 }
 
 const traverse_cells = () => {
-    for(let i = 1; i < SIM_WIDTH - 1; i++){
+    for(let i = 0; i < SIM_WIDTH - 1; i++){
         for(let j = 1; j < SIM_HEIGHT - 1; j++){
         
             cell_array[convertTo1D(i, j)].update();
@@ -150,9 +191,9 @@ const display_cells = () => {
       if (cell_array[i].isWall) {
         ctx.fillStyle = "green";
       } else {
-        ctx.fillStyle = 'hsl(' + 0 + ',' + 0 + '%,' + (0 + cell_array[i].pressure * 0.0001) + '%)';
+        ctx.fillStyle = `rgb(0,0,${cell_array[i].pressure * 2}`;
         // console.log(cell_array[i].pressure)
-        if(i%100 ==0){
+        if((i+10)%100 ==0){
             console.log(cell_array[i].pressure)
         
         }
@@ -174,7 +215,7 @@ const init = () => {
     // ctx.scale(devicePixelRatio, devicePixelRatio);
     create_cells();
     display_cells();
-    main_loop();
+    // main_loop();
   };
 
 const main_loop = () => {
