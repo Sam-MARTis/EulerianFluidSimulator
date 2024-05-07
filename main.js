@@ -5,13 +5,14 @@ let devicePixelRatio = window.devicePixelRatio || 1;
 
 SIM_WIDTH = 150;
 SIM_HEIGHT = 100;
-GRAVITY = 9.8;
-TIME_STEP = 0.01;
+GRAVITY = 0;
+TIME_STEP = 0.001;
 // CELL_SIZE = window.innerWidth*window.innerHeight*(devicePixelRatio**2)/(SIM_WIDTH*SIM_HEIGHT);
 CELL_SIZE = 5;
-PRESSURE_CONSTANT = 0.1;
-BOUNDRY_VEL = 1;
-OVER_RELAXATION_CONSTANT = 1;
+PRESSURE_CONSTANT = 0.001;
+BOUNDRY_VEL = 50;
+OVER_RELAXATION_CONSTANT = 1.9;
+VEL_CONST = 0.1
 
 let cell_array = [];
 
@@ -29,23 +30,23 @@ const convertTo2D = (index) => {
   return [index % SIM_WIDTH, Math.floor(index / SIM_WIDTH)];
 };
 
-//Structures and Classes
-class Source {
-  constructor(x, y, size, p = 240) {
-    this.x = x;
-    this.y = y;
-    this.size = size;
-    this.isWall = true;
-    this.rightV = 0;
-    this.flowV = 0;
-    this.pressure = p;
-  }
-  update = () => {
-    let index = convertTo1D(this.x + 1, this.y);
-    cell_array[index].rightV = this.flowV;
-  };
-  updateSurroundingBlocks = () => {};
-}
+// //Structures and Classes
+// class Source {
+//   constructor(x, y, size, p = 240) {
+//     this.x = x;
+//     this.y = y;
+//     this.size = size;
+//     this.isWall = true;
+//     this.rightV = 0;
+//     this.flowV = 0;
+//     this.pressure = p;
+//   }
+//   update = () => {
+//     let index = convertTo1D(this.x + 1, this.y);
+//     cell_array[index].rightV = this.flowV;
+//   };
+//   updateSurroundingBlocks = () => {};
+// }
 class Cell {
   constructor(x, y, size, p = 20, isWall = 0) {
     this.x = x;
@@ -62,6 +63,7 @@ class Cell {
     this.fluidBlockCount = 4;
     this.fluidBlocks = [1, 1, 1, 1]; //Left up right down
     this.pressure = 0;
+    this.velMag = 0;
   }
   calculatePressure = () => {
     this.pressure +=
@@ -73,6 +75,9 @@ class Cell {
       this.pressure = 255;
     }
   };
+  calculateVelMag = () => {
+    this.velMag = Math.sqrt((this.upV + this.downV)**2 + (this.leftV+this.rightV)**2);
+  }
 
   updateSurroundingBlocks = () => {
     let left = convertTo1D(this.x - 1, this.y);
@@ -105,6 +110,7 @@ class Cell {
     if (!this.surroundingBlocks[3].isWall) {
       this.surroundingBlocks[3].upV = this.downV;
     }
+  
   };
 
   gravity = () => {
@@ -266,14 +272,15 @@ const setup_border_cell_states = () => {
 
 const traverse_cells = () => {
   for (let j = 1; j < SIM_HEIGHT - 1; j++) {
+    cell_array[convertTo1D(1, j)].leftV = BOUNDRY_VEL;
     for (let i = 1; i < SIM_WIDTH - 1; i++) {
       let current_cell = cell_array[convertTo1D((x = i), (y = j))];
 
-      current_cell.gravity();
+      // current_cell.gravity();
       current_cell.calculateDivergence();
       current_cell.calculatePressure();
-      current_cell.makeDivergenceZero();
-      current_cell.sync();
+      current_cell.calculateVelMag();
+      
       // if(i% 5 ==0){
       //   display_cells();
       // }
@@ -281,13 +288,46 @@ const traverse_cells = () => {
     }
   }
   for (let j = 1; j < SIM_HEIGHT - 1; j++) {
+    cell_array[convertTo1D(1, j)].leftV = BOUNDRY_VEL;
     for (let i = 1; i < SIM_WIDTH - 1; i++) {
       let current_cell = cell_array[convertTo1D((x = i), (y = j))];
 
+      // current_cell.gravity();
+      current_cell.makeDivergenceZero();
+      current_cell.sync();
+      
+      // if(i% 5 ==0){
+      //   display_cells();
+      // }
+      // display_cells();
+    }
+  }
+
+  
+  for (let i = 1; i < SIM_WIDTH - 1; i++) {
+  for (let j = 1; j < SIM_HEIGHT - 1; j++) {
+
+      let current_cell = cell_array[convertTo1D((x = i), (y = j))];
+
       current_cell.advectVelocity();
+      current_cell.sync();
     }
   }
 };
+
+const create_obstacle = () => {
+  for(let x_offset = Math.round(SIM_WIDTH*0.4); x_offset<= SIM_WIDTH*0.6; x_offset++){
+    for(let y_offset = Math.round(SIM_HEIGHT*0.4); y_offset<= SIM_HEIGHT*0.6; y_offset++){
+      let cell_current = cell_array[convertTo1D(x_offset,y_offset)];
+      cell_current.isWall = true;
+      cell_current.leftV = 0;
+      cell_current.rightV = 0;
+      cell_current.upV = 0;
+      cell_current.downV = 0;
+      
+    }
+  }
+}
 
 // const traverse_cells = () => {
 //   for (let j = 2; j < SIM_HEIGHT - 2; j++) {
@@ -327,15 +367,18 @@ const display_cells = () => {
   ctx.fillStyle = "blue";
   for (let i = 0; i < SIM_WIDTH * SIM_HEIGHT; i++) {
     let [x, y] = convertTo2D(i);
-    if (cell_array[i].isWall) {
+    current_cell = cell_array[i];
+    prop_to_display = current_cell.velMag * VEL_CONST;
+    // prop_to_display = current_cell.pressure;
+    if (current_cell.isWall) {
       ctx.fillStyle = "green";
     } else {
-      ctx.fillStyle = `rgb(${255 - cell_array[i].rightV*10000000},0,${
-        cell_array[i].rightV*10000000
+      ctx.fillStyle = `rgb(${255 - prop_to_display },0,${
+        prop_to_display
       }`;
-      // console.log(cell_array[i].pressure)
+      // console.log(current_cell.pressure)
       if ((i + 10) % 100 == 0) {
-        console.log(cell_array[i].rightV);
+        console.log(current_cell.rightV);
       }
     }
     ctx.fillRect(x * CELL_SIZE, y * CELL_SIZE, CELL_SIZE, CELL_SIZE);
@@ -356,8 +399,9 @@ const init = () => {
   create_cells();
   // initialize_cells();
   setup_border_cell_states();
+  create_obstacle();
   display_cells();
-  setInterval(main_loop, 500);
+  setInterval(main_loop, 50);
 };
 
 const main_loop = () => {
