@@ -1,0 +1,33 @@
+*{
+    margin: 0px;
+    padding: 0px;
+    background-color: black;
+
+}
+#container{
+    display: flex;
+    background-color: transparent;
+    color: transparent;
+    flex-direction: row;
+}
+div{
+    position: absolute;
+    width: 100px;
+    height: 20px;
+    color: black;
+    z-index: 1;
+    background-color: bisque;
+    border-radius: 5px;
+    text-align: center;
+    /* vertical-align: auto; */
+    align-content: center;
+    padding: auto;
+}
+canvas{
+    display: block;
+    margin: 0 auto;
+    background-color: #000;
+    width: 100%;
+    height: 100%;
+    z-index: 0;
+}
