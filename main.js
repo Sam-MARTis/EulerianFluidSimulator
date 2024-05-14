@@ -8,17 +8,22 @@ velocityArrayVertical = []; // ROW MAJOR
 OVER_RELAXATION_CONSTANT = 1;
 WIDTH = 100;
 HEIGHT = 100;
-CELL_SIZE = 3;
+CELL_SIZE = 5;
+GRAVITY = 9.8;
 
 const isAFluidCell = (x, y) => {
-  if (x < 0 || x >= canvas.width || y < 0 || y >= canvas.height) {
+  if (x < 0 || x >= WIDTH|| y < 0 || y >= HEIGHT) {
     return false;
   }
-  if (cell_array[x][y].isFluid) {
+  if (cell_array[y][x].isFluid) {
     return true;
   }
   return false;
 };
+
+const normalize = (x) => { //Normalize to 0-255 from -infty to infty using tan inverse
+  return 255* (0.5+ (Math.atan(x) /Math.PI));
+}
 class VelocityVector {
   constructor(orientation = 0, u = 0, v = 0, isImmutable = 0) {
     this.u = u; //horizonatlly forward
@@ -74,24 +79,33 @@ class VelocityVector {
   }
 }
 class Cell {
-  constructor(x, y, isFLuid = 1) {
+  constructor(x, y, isFluid = 1) {
     this.x = Math.floor(x);
     this.y = Math.floor(y);
     // this.surroundingFluidBlocks = [];
     this.divergence = 0;
     this.pressure = 0;
-    this.velocities = [_, _, _, _]; //left up right down
+    let tempVector = new VelocityVector();
+    this.velocities = [tempVector, tempVector, tempVector, tempVector]; //left up right down
     this.surroundingFluidBlocksCount = 0;
-    this.isFLuid = isFLuid;
+    this.isFluid = isFluid;
 
     //Remember to call updateVelocities and updateSurroundingFluidBlocksCount before using the cell
     //Also makeWall
   }
   updateVelocities = () => {
-    this.velocities[0] = velocityArrayHorizontal[this.x][this.y];
-    this.velocities[1] = velocityArrayVertical[this.x][this.y];
-    this.velocities[2] = velocityArrayHorizontal[this.x + 1][this.y];
-    this.velocities[3] = velocityArrayVertical[this.x][this.y + 1];
+    try{
+      this.velocities[0] = velocityArrayHorizontal[this.y][this.x];
+      this.velocities[1] = velocityArrayVertical[this.y][this.x];
+      this.velocities[2] = velocityArrayHorizontal[this.y][this.x+1];
+      this.velocities[3] = velocityArrayVertical[this.y+1][this.x];
+    }
+    catch (e) {
+      console.log(velocityArrayHorizontal.length + " " + velocityArrayHorizontal[0].length);
+      console.log(velocityArrayVertical.length + " " + velocityArrayVertical[0].length);
+      console.log("Error at x: " + this.x + " y: " + this.y + " in updateVelocities")
+      console.log(e);
+    }
   }
   updateSurroundingFluidBlocksCount = () => {
     this.surroundingFluidBlocksCount = 0;
@@ -109,17 +123,21 @@ class Cell {
     }
   };
   calculateDivergence = () => {
-    divergence = 0;
+    this.divergence = 0;
     for (let i = 0; i < this.velocities.length; i++) {
-      divergence += (1 - (i < 2) * 2) * this.velocities[i].getValue();
+      this.divergence += (1 - (i < 2) * 2) * this.velocities[i].getValue();
     }
   };
+  restartPressure = () => {
+    this.pressure = 0;
+  }
   makeDivergenceZero = () => {
     for (let i = 0; i < this.velocities.length; i++) {
       this.velocities[i].adjustValue(
         OVER_RELAXATION_CONSTANT*this.divergence / this.surroundingFluidBlocksCount
       );
     }
+    this.pressure+=this.divergence;
   };
   makeWall = () => {
     this.isFluid = 0;
@@ -138,7 +156,7 @@ const createCells = (width, height) => {
   for(let y = 0; y<height; y++){
     let row = [];
     for (let x = 0; x < width; x++) {
-      row.push(new Cell(x, y));
+      row.push(new Cell(x, y, isFLuid = true));
     }
     cell_array.push(row);
   }
@@ -173,10 +191,10 @@ const initializeVelocityVectors = (width, height) => {
  //Run boundry copier BEFORE cell velocity assignment
 const addCopiedBoundry = () => {
   for(let i = 0; i<velocityArrayHorizontal.length; i++){
-    velocityArrayHorizontal[velocityArrayHorizontal[0].length-1][i] = velocityArrayHorizontal[velocityArrayHorizontal[0].length-2][i];
+    velocityArrayHorizontal[i][velocityArrayHorizontal[0].length - 1] = velocityArrayHorizontal[i][velocityArrayHorizontal[0].length - 2]
   }
   for(let i = 0; i<velocityArrayVertical.length; i++){
-    velocityArrayVertical[velocityArrayVertical[0].length-1][i] = velocityArrayVertical[velocityArrayVertical.length-2][i];
+    velocityArrayVertical[i][velocityArrayVertical[0].length - 1] = velocityArrayVertical[i][velocityArrayVertical[0].length - 2]
   }
 }
 
@@ -218,19 +236,29 @@ const handleDivergence = () => {
 
 
 const mainLoop = () => {
-  traverse_cells();
-  display_cells();
+  gravityStep(GRAVITY);
+  handleDivergence();
+  displayCells(CELL_SIZE);
 };
+
+const traverseCells = () => {
+  for (let i = 0; i < cell_array.length; i++) {
+    for (let j = 0; j < cell_array[0].length; j++) {
+      console.log(cell_array[i][j].isFluid)
+    }
+  }
+}
 
 
 const displayCells = (cell_size = 3) => {
   ctx.clearRect(0, 0, canvas.width, canvas.height);
   for (let i = 0; i < cell_array.length; i++) {
     for (let j = 0; j < cell_array[0].length; j++) {
-      if (cell_array[i][j].isFluid) {
-        ctx.fillStyle = "blue";
+      let cellToLookAt = cell_array[i][j];
+      if (cellToLookAt.isFluid) {
+        ctx.fillStyle = `rgb(${normalize(cellToLookAt.pressure)}, 0, ${255- normalize(cellToLookAt.pressure)})`;
       } else {
-        ctx.fillStyle = "black";
+        ctx.fillStyle = "green";
       }
       ctx.fillRect(i * cell_size, j * cell_size, cell_size, cell_size);
     }
@@ -247,12 +275,15 @@ const init = () => {
   canvas.style.height = canvas.height + "px";
 
   createCells(WIDTH, HEIGHT);
+  // traverseCells();
   initializeVelocityVectors(WIDTH, HEIGHT);
   addCopiedBoundry();
   initializeCells();
+  makeWalls();
   displayCells(CELL_SIZE);
+  
 
-  // setInterval(main_loop, 1);
+  setInterval(mainLoop,1000);
 };
 //Event Listeners
 
