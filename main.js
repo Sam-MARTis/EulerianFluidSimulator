@@ -10,7 +10,7 @@ WIDTH = 100;
 HEIGHT = 100;
 CELL_SIZE = 5;
 GRAVITY = 9.8;
-PRESSURE_CONSTANT = 0.02;
+PRESSURE_CONSTANT = 0.05;
 TIME_STEP = 0.1;
 DIVERGENCE_TOLERENCE = 0.001;
 
@@ -26,7 +26,8 @@ const isAFluidCell = (x, y) => {
 
 const normalize = (x) => {
   //Normalize to 0-255 from -infty to infty using tan inverse
-  return 255 * (0.5 + Math.atan(x) / Math.PI);
+  // return 255 * (0.5 + Math.atan(x) / Math.PI);
+  return 255 *(1- (1/(1+0.2*1.4**(x/2))))
 };
 class VelocityVector {
   constructor(orient = 0, u = 0, v = 0, isImmutable = 0) {
@@ -225,7 +226,7 @@ const gravityStep = (value) => {
 const makeWalls = () => {
   //Walls at right and left of the simulation
   for (let i = 0; i < cell_array[0].length; i++) {
-    cell_array[0][i].makeWall();
+    // cell_array[0][i].makeWall();
     cell_array[cell_array[0].length - 1][i].makeWall();
   }
   //Wall at bottom
