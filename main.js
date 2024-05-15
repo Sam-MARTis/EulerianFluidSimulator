@@ -10,10 +10,10 @@ WIDTH = 100;
 HEIGHT = 100;
 CELL_SIZE = 5;
 GRAVITY = 9.8;
-PRESSURE_CONSTANT = 0.06;
-TIME_STEP = 0.1;
+PRESSURE_CONSTANT = 0.6;
+TIME_STEP = 0.01;
 DIVERGENCE_TOLERENCE = 0.001;
-BOUNDRY_VELOCITY = 20;
+BOUNDRY_VELOCITY = 0;
 
 const isAFluidCell = (x, y) => {
   if (x < 0 || x >= WIDTH || y < 0 || y >= HEIGHT) {
@@ -201,13 +201,17 @@ class Cell {
           cell_array[this.y][this.x - 1].velocities[3].getValue()) *
           TIME_STEP) /
         4;
-      midVel = findVelocityAtPoint(this.x - dx, this.y + 0.5 - dy);
+      midVel = findVelocityAtPoint(this.x - dx/2, this.y + 0.5 - dy/2);
+      if(!(midVel===0)){
       finalVel = findVelocityAtPoint(
         this.x - midVel[0] * TIME_STEP,
         this.y + 0.5 - midVel[1] * TIME_STEP
       ); //RUNGA KUTTA
+      if(!(finalVel===0)){
       this.velocities[0].updateValues(finalVel[0], finalVel[1]);
+      }
     }
+  }
     if (isAFluidCell(this.x + 1, this.y)) {
       //For right vel
       dx = this.velocities[2].getValue() * TIME_STEP;
@@ -218,13 +222,17 @@ class Cell {
           cell_array[this.y][this.x + 1].velocities[3].getValue()) *
           TIME_STEP) /
         4;
-      midVel = findVelocityAtPoint(this.x + 1 - dx, this.y + 0.5 - dy);
+      midVel = findVelocityAtPoint(this.x + 1 - dx/2, this.y + 0.5 - dy/2);
+      if(!(midVel===0)){
       finalVel = findVelocityAtPoint(
         this.x + 1 - midVel[0] * TIME_STEP,
         this.y + 0.5 - midVel[1] * TIME_STEP
       ); //RUNGA KUTTA
+      if(!(finalVel===0)){
       this.velocities[2].updateValues(finalVel[0], finalVel[1]);
+      }
     }
+  }
     if (isAFluidCell(this.x, this.y - 1)) {
       //For top vel
       dy = this.velocities[1].getValue() * TIME_STEP;
@@ -235,12 +243,16 @@ class Cell {
           cell_array[this.y - 1][this.x].velocities[2].getValue()) *
           TIME_STEP) /
         4;
-      midVel = findVelocityAtPoint(this.x + 0.5 - dx, this.y - dy);
+      midVel = findVelocityAtPoint(this.x + 0.5 - dx/2, this.y - dy/2);
+      if(!(midVel===0)){
       finalVel = findVelocityAtPoint(
         this.x + 0.5 - midVel[0] * TIME_STEP,
         this.y - midVel[1] * TIME_STEP
       ); //RUNGA KUTTA
+      if(!(finalVel===0)){
       this.velocities[1].updateValues(finalVel[0], finalVel[1]);
+      }
+    }
     }
     if (isAFluidCell(this.x, this.y + 1)) {
       //For down vel
@@ -252,12 +264,16 @@ class Cell {
           cell_array[this.y + 1][this.x].velocities[2].getValue()) *
           TIME_STEP) /
         4;
-      midVel = findVelocityAtPoint(this.x + 0.5 - dx, this.y + 1 - dy);
+      midVel = findVelocityAtPoint(this.x + 0.5 - dx/2, this.y + 1 - dy/2);
+      if(!(midVel===0)){
       finalVel = findVelocityAtPoint(
         this.x + 0.5 - midVel[0] * TIME_STEP,
         this.y + 1 - midVel[1] * TIME_STEP
       ); //RUNGA KUTTA
+      if(!(finalVel===0)){
       this.velocities[3].updateValues(finalVel[0], finalVel[1]);
+      }
+    }
     }
 
     //TODO
@@ -265,20 +281,25 @@ class Cell {
 }
 
 const findVelocityAtPoint = (x, y) => {
-  let cell_x = floor(x);
-  let cell_y = floor(y);
+  let cell_x = Math.floor(x);
+  let cell_y = Math.floor(y);
   if (x < 0 || x >= WIDTH || y < 0 || y >= HEIGHT) {
     return 0;
   }
   let dx = x - cell_x;
   let dy = y - cell_y;
-  let velocitiesToConsider = velocityArrayHorizontal[cell_y][cell_x].velocities;
-  return [
-    velocitiesToConsider[0].getValue() * (1 - dx) +
-      velocitiesToConsider[2].getValue() * dx,
-    velocitiesToConsider[1].getValue() * (1 - dy) +
-      velocitiesToConsider[3].getValue() * dy,
-  ];
+  try{
+    let velocitiesToConsider = cell_array[cell_y][cell_x].velocities;
+    return [
+      velocitiesToConsider[0].getValue() * (1 - dx) +
+        velocitiesToConsider[2].getValue() * dx,
+      velocitiesToConsider[1].getValue() * (1 - dy) +
+        velocitiesToConsider[3].getValue() * dy,
+    ];}
+  catch (e) {
+    console.log(e);
+    console.log(cell_x, cell_y);
+  }
 };
 
 const createCells = (width, height) => {
@@ -316,6 +337,16 @@ const initializeVelocityVectors = (width, height) => {
     velocityArrayVertical.push(row);
   }
 };
+
+const copyCell = (fromIndex, toIndex) => {
+  velocityArrayHorizontal[toIndex[1]][toIndex[0]] = velocityArrayHorizontal[fromIndex[1]][fromIndex[0]].copyThis();
+  velocityArrayVertical[toIndex[1]][toIndex[0]] = velocityArrayVertical[fromIndex[1]][fromIndex[0]].copyThis();
+  velocityArrayHorizontal[toIndex[1]][toIndex[0]+1] = velocityArrayHorizontal[fromIndex[1]][fromIndex[0]+1].copyThis();
+  velocityArrayVertical[toIndex[1]+1][toIndex[0]] = velocityArrayVertical[fromIndex[1]+1][fromIndex[0]].copyThis();
+  cell_array[toIndex[1]][toIndex[0]].updateVelocities();
+}
+
+
 //Run boundry copier BEFORE cell velocity assignment
 const addCopiedBoundry = () => {
   for (let i = 0; i < velocityArrayHorizontal.length; i++) {
@@ -358,6 +389,19 @@ const addCopiedBoundry = () => {
     cell_array[i][3].updateVelocities();
     // cell_array[i][cell_array[0].length - 4].isFluid = 0;
   }
+
+  // for (let i = 0; i < cell_array.length; i++) {
+  //   copyCell([WIDTH - 4, i], [WIDTH - 1, i]);
+  //   copyCell([WIDTH - 5, i], [WIDTH - 2, i]);
+  //   copyCell([WIDTH - 6, i], [WIDTH - 3, i]);
+  //   // copyCell([WIDTH - 7, i], [WIDTH - 4, i]);
+  //   copyCell([3, i], [0, i]);
+  //   copyCell([4, i], [1, i]);
+  //   copyCell([5, i], [2, i]);
+  //   // copyCell([6, i], [3, i]);
+  
+  // }
+
 };
 
 const gravityStep = (value) => {
@@ -371,7 +415,7 @@ const gravityStep = (value) => {
 const makeWalls = () => {
   //Walls at right and left of the simulation
   for (let i = 0; i < cell_array[0].length; i++) {
-    cell_array[0][i].makeWall();
+    // cell_array[0][i].makeWall();
     cell_array[cell_array.length - 1][i].makeWall();
   }
   //Wall at bottom
@@ -419,7 +463,7 @@ const handleDivergence = (count = 1) => {
   }
   // let trigger = 1;
   for (let iteration = 0; iteration < count; iteration++) {
-    addCopiedBoundry();
+    // addCopiedBoundry();
     // trigger = 1;
 
     //We'll try doing them sepparately. If that doesn't wwork together
@@ -438,6 +482,18 @@ const handleDivergence = (count = 1) => {
 };
 
 const handleAdvection = () => {
+  for(let i = 0; i < cell_array.length; i++) {
+    for(let j = 0; j < cell_array[0].length; j++) {
+      try{
+        cell_array[i][j].advectVelocity();
+      }
+      catch(e) {
+        console.log('From handle advection' + e);
+        console.log(i, j);
+      }
+      // cell_array[i][j].advectVelocity();
+    }
+  }
   // removeWalls();
   // advectVelocity();
   // addWalls();
@@ -445,7 +501,7 @@ const handleAdvection = () => {
 
 const mainLoop = () => {
   gravityStep(GRAVITY * TIME_STEP);
-  handleDivergence(500);
+  handleDivergence(1000);
   // handleAdvection();
 };
 
@@ -494,7 +550,7 @@ const init = () => {
   boundryConditions();
   displayCells(CELL_SIZE);
 
-  setInterval(mainLoop, Math.floor(1000 * TIME_STEP));
+  setInterval(mainLoop, Math.floor(500 * TIME_STEP));
   setInterval(() => {
     displayCells(CELL_SIZE);
   }, 1000);
