@@ -9,9 +9,11 @@ OVER_RELAXATION_CONSTANT = 1.9;
 WIDTH = 100;
 HEIGHT = 100;
 CELL_SIZE = 5;
+
 GRAVITY = 9.8;
+GRAVITY = 0;
 PRESSURE_CONSTANT = 0.6;
-TIME_STEP = 0.01;
+TIME_STEP = 0.001;
 DIVERGENCE_TOLERENCE = 0.001;
 BOUNDRY_VELOCITY = 0;
 
@@ -49,7 +51,7 @@ class VelocityVector {
   sudoUpdateValues = (u, v) => {
     this.u = u;
     this.v = v;
-    return this;
+    // return this;
   };
   add = (otherVector) => {
     this.u += otherVector.u;
@@ -118,18 +120,7 @@ class Cell {
     this.velocities[1] = velocityArrayVertical[this.y][this.x];
     this.velocities[2] = velocityArrayHorizontal[this.y][this.x + 1];
     this.velocities[3] = velocityArrayVertical[this.y + 1][this.x];
-    // } catch (e) {
-    //   console.log(
-    //     velocityArrayHorizontal.length + " " + velocityArrayHorizontal[0].length
-    //   );
-    //   console.log(
-    //     velocityArrayVertical.length + " " + velocityArrayVertical[0].length
-    //   );
-    //   console.log(
-    //     "Error at x: " + this.x + " y: " + this.y + " in updateVelocities"
-    //   );
-    //   console.log(e);
-    // }
+
   };
   getVelocitiesValues = () => {
     let velArr = [];
@@ -349,58 +340,19 @@ const copyCell = (fromIndex, toIndex) => {
 
 //Run boundry copier BEFORE cell velocity assignment
 const addCopiedBoundry = () => {
-  for (let i = 0; i < velocityArrayHorizontal.length; i++) {
-    velocityArrayHorizontal[i][velocityArrayHorizontal[0].length - 1] =
-      velocityArrayHorizontal[i][
-        velocityArrayHorizontal[0].length - 4
-      ].copyThis();
-    velocityArrayHorizontal[i][velocityArrayHorizontal[0].length - 2] =
-      velocityArrayHorizontal[i][
-        velocityArrayHorizontal[0].length - 5
-      ].copyThis();
-    velocityArrayHorizontal[i][velocityArrayHorizontal[0].length - 3] =
-      velocityArrayHorizontal[i][
-        velocityArrayHorizontal[0].length - 6
-      ].copyThis();
-    velocityArrayHorizontal[i][velocityArrayHorizontal[0].length - 4] =
-      velocityArrayHorizontal[i][
-        velocityArrayHorizontal[0].length - 7
-      ].copyThis();
-  }
-  for (let i = 0; i < velocityArrayVertical.length; i++) {
-    velocityArrayVertical[i][velocityArrayVertical[0].length - 1] =
-      velocityArrayVertical[i][velocityArrayVertical[0].length - 4].copyThis();
-    velocityArrayVertical[i][velocityArrayVertical[0].length - 2] =
-      velocityArrayVertical[i][velocityArrayVertical[0].length - 5].copyThis();
-    velocityArrayVertical[i][velocityArrayVertical[0].length - 3] =
-      velocityArrayVertical[i][velocityArrayVertical[0].length - 6].copyThis();
-    velocityArrayVertical[i][velocityArrayVertical[0].length - 4] =
-      velocityArrayVertical[i][velocityArrayVertical[0].length - 7].copyThis();
-  }
+
 
   for (let i = 0; i < cell_array.length; i++) {
-    cell_array[i][WIDTH - 1].updateVelocities();
-    cell_array[i][WIDTH - 2].updateVelocities();
-    cell_array[i][WIDTH - 3].updateVelocities();
-    cell_array[i][WIDTH - 4].updateVelocities();
-    cell_array[i][0].updateVelocities();
-    cell_array[i][1].updateVelocities();
-    cell_array[i][2].updateVelocities();
-    cell_array[i][3].updateVelocities();
-    // cell_array[i][cell_array[0].length - 4].isFluid = 0;
-  }
-
-  // for (let i = 0; i < cell_array.length; i++) {
-  //   copyCell([WIDTH - 4, i], [WIDTH - 1, i]);
-  //   copyCell([WIDTH - 5, i], [WIDTH - 2, i]);
-  //   copyCell([WIDTH - 6, i], [WIDTH - 3, i]);
-  //   // copyCell([WIDTH - 7, i], [WIDTH - 4, i]);
-  //   copyCell([3, i], [0, i]);
-  //   copyCell([4, i], [1, i]);
-  //   copyCell([5, i], [2, i]);
-  //   // copyCell([6, i], [3, i]);
+    copyCell([WIDTH - 2, i], [WIDTH - 1, i]);
+    // copyCell([WIDTH - 4, i], [WIDTH - 2, i]);
+    // copyCell([WIDTH - 6, i], [WIDTH - 3, i]);
+    // copyCell([WIDTH - 7, i], [WIDTH - 4, i]);
+    copyCell([2, i], [0, i]);
+    copyCell([3, i], [1, i]);
+    // copyCell([5, i], [2, i]);
+    // copyCell([6, i], [3, i]);
   
-  // }
+  }
 
 };
 
@@ -411,6 +363,15 @@ const gravityStep = (value) => {
     }
   }
 };
+
+const makeObstacle = () =>{
+  for (let i = 0; i < 10; i++) {
+    for (let j = 0; j < 10; j++) {
+      cell_array[30 + j][40 + i].makeWall();
+    }
+  }
+
+}
 
 const makeWalls = () => {
   //Walls at right and left of the simulation
@@ -424,11 +385,7 @@ const makeWalls = () => {
     cell_array[i][0].velocities[2].u = BOUNDRY_VELOCITY;
     cell_array[i][0].makeWall();
   }
-  for (let i = 0; i < 10; i++) {
-    for (let j = 0; j < 10; j++) {
-      cell_array[30 + j][40 + i].makeWall();
-    }
-  }
+  makeObstacle();
 };
 
 const unmakeWalls = () => {
@@ -442,16 +399,23 @@ const unmakeWalls = () => {
   }
 };
 
+// const updateVelicties = () => {
+//   for cell
+// }
+
 const boundryConditions = () => {
   for (let i = 0; i < velocityArrayHorizontal.length; i++) {
     velocityArrayHorizontal[i][0].sudoUpdateValues(0, BOUNDRY_VELOCITY);
     velocityArrayHorizontal[i][1].sudoUpdateValues(0, BOUNDRY_VELOCITY);
     velocityArrayHorizontal[i][
       velocityArrayHorizontal[0].length - 1
-    ].sudoUpdateValues(0, BOUNDRY_VELOCITY);
+    ].sudoUpdateValues( BOUNDRY_VELOCITY, 0);
     velocityArrayHorizontal[i][
       velocityArrayHorizontal[0].length - 2
-    ].sudoUpdateValues(0, BOUNDRY_VELOCITY);
+    ].sudoUpdateValues(10, BOUNDRY_VELOCITY);
+    console.log(velocityArrayHorizontal[0][velocityArrayHorizontal[0].length - 2].getValue());
+
+
   }
 };
 
@@ -463,7 +427,7 @@ const handleDivergence = (count = 1) => {
   }
   // let trigger = 1;
   for (let iteration = 0; iteration < count; iteration++) {
-    // addCopiedBoundry();
+    addCopiedBoundry();
     // trigger = 1;
 
     //We'll try doing them sepparately. If that doesn't wwork together
@@ -482,6 +446,7 @@ const handleDivergence = (count = 1) => {
 };
 
 const handleAdvection = () => {
+  boundryConditions();
   for(let i = 0; i < cell_array.length; i++) {
     for(let j = 0; j < cell_array[0].length; j++) {
       try{
@@ -500,8 +465,8 @@ const handleAdvection = () => {
 };
 
 const mainLoop = () => {
-  gravityStep(GRAVITY * TIME_STEP);
-  handleDivergence(1000);
+  // gravityStep(GRAVITY * TIME_STEP);
+  // handleDivergence(1000);
   // handleAdvection();
 };
 
@@ -545,9 +510,12 @@ const init = () => {
   // traverseCells();
   initializeVelocityVectors(WIDTH, HEIGHT);
   // addCopiedBoundry();
-  initializeCells();
-  makeWalls();
+  
+  // makeWalls();
+  makeObstacle();
   boundryConditions();
+
+  setTimeout(initializeCells, 100);
   displayCells(CELL_SIZE);
 
   setInterval(mainLoop, Math.floor(500 * TIME_STEP));
