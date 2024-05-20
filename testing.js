@@ -77,6 +77,10 @@ console.log(vector.getValue())
 vector.sudoUpdateValues(5, 4)
 console.log(vector.getValue())
 
+
+BOUNDRY_VELOCITY = 3
+
+
 const boundryConditions = () => {
     for (let i = 0; i < velocityArrayHorizontal.length; i++) {
       velocityArrayHorizontal[i][0].sudoUpdateValues(0, BOUNDRY_VELOCITY);
@@ -109,3 +113,5 @@ const initializeVelocityVectors = (width, height) => {
       velocityArrayVertical.push(row);
     }
   };
+
+  initializeCells

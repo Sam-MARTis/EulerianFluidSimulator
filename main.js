@@ -2,20 +2,23 @@
 let canvas;
 let ctx;
 let devicePixelRatio = window.devicePixelRatio || 1;
-cell_array = []; //ROW MAJOR
-velocityArrayHorizontal = []; //ROW MAJOR
-velocityArrayVertical = []; // ROW MAJOR
-OVER_RELAXATION_CONSTANT = 1.9;
+let cell_array = []; //ROW MAJOR
+let wall_array = [];
+let velocityArrayHorizontal = []; //ROW MAJOR
+let velocityArrayVertical = []; // ROW MAJOR
+OVER_RELAXATION_CONSTANT = 1.97;
 WIDTH = 100;
 HEIGHT = 100;
 CELL_SIZE = 5;
 
-GRAVITY = 9.8;
+// GRAVITY = 9.8;
 GRAVITY = 0;
-PRESSURE_CONSTANT = 0.6;
+PRESSURE_CONSTANT = 60;
 TIME_STEP = 0.001;
 DIVERGENCE_TOLERENCE = 0.001;
-BOUNDRY_VELOCITY = 0;
+BOUNDRY_VELOCITY = 3;
+
+
 
 const isAFluidCell = (x, y) => {
   if (x < 0 || x >= WIDTH || y < 0 || y >= HEIGHT) {
@@ -125,7 +128,7 @@ class Cell {
   getVelocitiesValues = () => {
     let velArr = [];
     for (let i = 0; i < this.velocities.length; i++) {
-      velArr.push(this.velocities[i].getValue());
+      velArr.push(this.velocities[i]);
     }
     return velArr;
   };
@@ -167,6 +170,7 @@ class Cell {
   makeWall = () => {
     this.isFluid = 0;
     for (let i = 0; i < this.velocities.length; i++) {
+      this.velocities[i].sudoUpdateValues(0,0);
       this.velocities[i].isImmutable = 1;
     }
   };
@@ -269,6 +273,8 @@ class Cell {
 
     //TODO
   };
+
+  
 }
 
 const findVelocityAtPoint = (x, y) => {
@@ -316,14 +322,14 @@ const initializeVelocityVectors = (width, height) => {
   for (let y = 0; y < height; y++) {
     let row = [];
     for (let x = 0; x < width + 1; x++) {
-      row.push(new VelocityVector((orient = 1)));
+      row.push(new VelocityVector(orient = 0));
     }
     velocityArrayHorizontal.push(row);
   }
   for (let y = 0; y < height + 1; y++) {
     let row = [];
     for (let x = 0; x < width; x++) {
-      row.push(new VelocityVector(1));
+      row.push(new VelocityVector(orient= 1));
     }
     velocityArrayVertical.push(row);
   }
@@ -376,14 +382,14 @@ const makeObstacle = () =>{
 const makeWalls = () => {
   //Walls at right and left of the simulation
   for (let i = 0; i < cell_array[0].length; i++) {
-    // cell_array[0][i].makeWall();
+    cell_array[0][i].makeWall();
     cell_array[cell_array.length - 1][i].makeWall();
   }
   //Wall at bottom
   for (let i = 0; i < cell_array.length; i++) {
     // cell_array[i][cell_array.length - 1].makeWall();
-    cell_array[i][0].velocities[2].u = BOUNDRY_VELOCITY;
-    cell_array[i][0].makeWall();
+    // cell_array[i][0].velocities[2].u = BOUNDRY_VELOCITY;
+    // cell_array[i][0].makeWall();
   }
   makeObstacle();
 };
@@ -399,23 +405,41 @@ const unmakeWalls = () => {
   }
 };
 
+const trackWalls = () => {
+  wall_array = [];
+  for (let i = 0; i < cell_array.length; i++) {
+    for (let j = 0; j < cell_array[0].length; j++) {
+      if (!cell_array[i][j].isFluid) {
+        wall_array.push([i, j]);
+      }
+    }
+  }
+
+}
+updateWalls = () => {
+  for(let i = 0; i < wall_array.length; i++) {
+    cell_array[wall_array[i][0]][wall_array[i][1]].makeWall();
+  } 
+
+}
+
 // const updateVelicties = () => {
 //   for cell
 // }
 
 const boundryConditions = () => {
+  updateWalls();
   for (let i = 0; i < velocityArrayHorizontal.length; i++) {
-    velocityArrayHorizontal[i][0].sudoUpdateValues(0, BOUNDRY_VELOCITY);
-    velocityArrayHorizontal[i][1].sudoUpdateValues(0, BOUNDRY_VELOCITY);
-    velocityArrayHorizontal[i][
-      velocityArrayHorizontal[0].length - 1
-    ].sudoUpdateValues( BOUNDRY_VELOCITY, 0);
-    velocityArrayHorizontal[i][
-      velocityArrayHorizontal[0].length - 2
-    ].sudoUpdateValues(10, BOUNDRY_VELOCITY);
-    console.log(velocityArrayHorizontal[0][velocityArrayHorizontal[0].length - 2].getValue());
-
-
+    velocityArrayHorizontal[i][0].sudoUpdateValues(BOUNDRY_VELOCITY, 0);
+    velocityArrayHorizontal[i][1].sudoUpdateValues(BOUNDRY_VELOCITY, 0);
+    // velocityArrayHorizontal[i][velocityArrayHorizontal[0].length - 1].sudoUpdateValues( BOUNDRY_VELOCITY, 0);
+    // velocityArrayHorizontal[i][velocityArrayHorizontal[0].length - 2].sudoUpdateValues(BOUNDRY_VELOCITY, 0);
+  }
+  for (let i = 0; i < velocityArrayVertical[0].length; i++) {
+    velocityArrayVertical[0][i].sudoUpdateValues(0, 0);
+    velocityArrayVertical[1][i].sudoUpdateValues(0, 0);
+    velocityArrayVertical[velocityArrayVertical.length - 1][i].sudoUpdateValues(0, 0);
+    velocityArrayVertical[velocityArrayVertical.length - 2][i].sudoUpdateValues(0, 0);
   }
 };
 
@@ -427,19 +451,25 @@ const handleDivergence = (count = 1) => {
   }
   // let trigger = 1;
   for (let iteration = 0; iteration < count; iteration++) {
-    addCopiedBoundry();
+    boundryConditions()
+    // addCopiedBoundry();
     // trigger = 1;
 
     //We'll try doing them sepparately. If that doesn't wwork together
     for (let i = 0; i < cell_array.length; i++) {
-      for (let j = 0; j < cell_array[0].length; j++) {
+  
+      for (let j = (i+iteration)%2; j < cell_array[0].length; j+=2) {
         let cellToLookAt = cell_array[i][j];
+        if(!cellToLookAt.isFluid){
+          continue;
+        }
         let val = cellToLookAt.calculateDivergence();
         // if (val > DIVERGENCE_TOLERENCE || val < -DIVERGENCE_TOLERENCE) {
         //   trigger = 0;
         // }
 
         cellToLookAt.makeDivergenceZero();
+        
       }
     }
   }
@@ -465,9 +495,9 @@ const handleAdvection = () => {
 };
 
 const mainLoop = () => {
-  // gravityStep(GRAVITY * TIME_STEP);
-  // handleDivergence(1000);
-  // handleAdvection();
+  gravityStep(GRAVITY * TIME_STEP);
+  handleDivergence(300);
+  handleAdvection();
 };
 
 const traverseCells = () => {
@@ -511,14 +541,16 @@ const init = () => {
   initializeVelocityVectors(WIDTH, HEIGHT);
   // addCopiedBoundry();
   
-  // makeWalls();
+  makeWalls();
   makeObstacle();
   boundryConditions();
+  
 
-  setTimeout(initializeCells, 100);
+  initializeCells();
+  makeWalls();
   displayCells(CELL_SIZE);
 
-  setInterval(mainLoop, Math.floor(500 * TIME_STEP));
+  setInterval(mainLoop, Math.floor(100));
   setInterval(() => {
     displayCells(CELL_SIZE);
   }, 1000);
@@ -533,23 +565,30 @@ const debugValues = (e) => {
       Math.floor(e.layerX / CELL_SIZE)
     ];
   cell.calculateDivergence();
+  let vels = cell.getVelocitiesValues();
+
 
   console.log(
     `Coordinates: ${e.layerX / CELL_SIZE}, ${
       e.layerY / CELL_SIZE
-    }\nPressure of cell is: ${cell.pressure}\nDivergence is ${
+    }\nIsWall: ${!cell.isFluid}\nPressure of cell is: ${cell.pressure}\nDivergence is ${
       cell.divergence
-    }\nVecities are: ${cell.getVelocitiesValues()}`
+    }\nVecities are: \n${vels[0].getValue()} isImmuatble: ${vels[0].isImmutable}\n ${vels[1].getValue()} isImmuatble: ${vels[1].isImmutable}\n ${vels[2].getValue()} isImmuatble: ${vels[2].isImmutable}\n ${vels[3].getValue()} isImmuatble: ${vels[3].isImmutable} `
   );
 };
-
+const streamline = (e) => {
+  let myX = e.layerX;
+  let myY = e.layerY;
+}
 document.addEventListener("DOMContentLoaded", init);
 document.addEventListener("mousemove", debugValues);
-document.addEventListener("click", mainLoop);
+document.addEventListener("click", streamline);
 // document.addEventListener("dblclick", displayCells)
 
 let divergenceButton = document.getElementById("divergenceStep");
 divergenceButton.addEventListener("click", () => {
-  gravityStep(GRAVITY);
+  console.log('Doing divergence');
+  
+  handleDivergence(1000);
 });
 // setInterval(handleDivergence, 50);
