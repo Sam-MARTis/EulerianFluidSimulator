@@ -6,17 +6,20 @@ let cell_array = []; //ROW MAJOR
 let wall_array = [];
 let velocityArrayHorizontal = []; //ROW MAJOR
 let velocityArrayVertical = []; // ROW MAJOR
-OVER_RELAXATION_CONSTANT = 1.97;
+OVER_RELAXATION_CONSTANT = 1.95;
 WIDTH = 100;
 HEIGHT = 100;
 CELL_SIZE = 5;
+let streamX;
+let streamY;
+let streamTrigger;
 
 // GRAVITY = 9.8;
 GRAVITY = 0;
-PRESSURE_CONSTANT = 60;
+PRESSURE_CONSTANT = 600;
 TIME_STEP = 0.001;
 DIVERGENCE_TOLERENCE = 0.001;
-BOUNDRY_VELOCITY = 3;
+BOUNDRY_VELOCITY = 5;
 
 
 
@@ -24,7 +27,7 @@ const isAFluidCell = (x, y) => {
   if (x < 0 || x >= WIDTH || y < 0 || y >= HEIGHT) {
     return false;
   }
-  if (cell_array[y][x].isFluid) {
+  if (cell_array[Math.floor(y)][Math.floor(x)].isFluid) {
     return true;
   }
   return false;
@@ -525,6 +528,33 @@ const displayCells = (cell_size = 3) => {
       ctx.fillRect(j * cell_size, i * cell_size, cell_size, cell_size);
     }
   }
+
+  if(streamTrigger>0){
+    let x = streamX;
+    let y = streamY;
+    let dx = 0;
+    let dy = 0;
+    let stride = 0.01
+    let midVel, finalVel;
+    for(let i = 0; i < 10000; i++){
+      if(!isAFluidCell(x, y)){
+        streamTrigger = 0;
+        break
+  
+      }
+      dx = findVelocityAtPoint(x, y)[0] * stride;
+      dy = findVelocityAtPoint(x, y)[1] * stride;
+      ctx.beginPath();
+      ctx.strokeStyle = "white";
+      ctx.moveTo(x * cell_size, y * cell_size);
+      ctx.lineTo((x + dx) * cell_size, (y + dy) * cell_size);
+      ctx.stroke();
+      x+=dx;
+      y+=dy;
+    }
+    streamTrigger--;
+  
+  }
 };
 const init = () => {
   canvas = document.getElementById("fluid-simulator");
@@ -577,9 +607,11 @@ const debugValues = (e) => {
   );
 };
 const streamline = (e) => {
-  let myX = e.layerX;
-  let myY = e.layerY;
-}
+  streamX = e.layerX/CELL_SIZE;
+  streamY = e.layerY/CELL_SIZE;
+  streamTrigger = 5;
+  }
+
 document.addEventListener("DOMContentLoaded", init);
 document.addEventListener("mousemove", debugValues);
 document.addEventListener("click", streamline);
