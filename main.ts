@@ -1,4 +1,4 @@
-//Types
+//Interfaces
 interface ctxObject {
     beginPath : () => void
     lineTo : (a: number, b: number) => void
@@ -10,7 +10,48 @@ interface ctxObject {
 }
 
 
-//End types
+//End interfaces
+
+//Classes
+
+
+//Vector
+class VelocityVector {
+    magnitude: number
+    immutable: boolean
+
+    constructor( _magnitude:number = 0, _immutable: boolean = false){
+        this.magnitude = _magnitude
+        this.immutable = _immutable
+    }
+
+    incrementValue = ( _value : number): void => {
+        if(this.immutable ==false){
+            this.magnitude += _value
+        }
+    }
+    sudoIncrementValue = ( _value: number): void => {
+        this.magnitude += _value
+    }
+    mag = (): number => {
+        return this.magnitude
+    }
+    isImmutable = (): boolean => {
+        return this.immutable
+    }
+}
+//End vector
+
+
+
+//Grid 
+//End grid
+
+
+//End classes
+
+
+
 
 
 
