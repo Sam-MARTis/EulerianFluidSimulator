@@ -42,6 +42,30 @@ class VelocityVector {
 }
 //End vector
 
+//Cell
+class Cell{
+    vl: VelocityVector
+    vu: VelocityVector
+    vr: VelocityVector
+    vd: VelocityVector
+    x: number
+    y: number
+    isFLuid: boolean
+
+    constructor(_x, _y, _isFluid){
+        this.x = _x
+        this.y = _y 
+        this.isFLuid = _isFluid
+    }
+
+    assignVelocities = (_vl: VelocityVector, _vu: VelocityVector, _vr: VelocityVector, _vd: VelocityVector): void =>{
+        this.vl = _vl
+        this.vu = _vu
+        this.vr = _vr
+        this.vd = _vd
+    }
+}
+//End Cell
 
 
 //Grid 
