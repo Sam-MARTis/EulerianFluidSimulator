@@ -5,6 +5,10 @@ interface ctxObject {
   moveTo: (a: number, b: number) => void;
   stroke: () => void;
   scale: (a: number, b: number) => void;
+  clearRect: (a: number, b: number, c: number, d: number) => void;
+  fillRect: (a: number, b: number, c: number, d: number) => void;
+
+  fillStyle: string;
   strokeStyle: string;
   strokeWidth: number;
 }
@@ -16,7 +20,8 @@ interface ctxObject {
 let OVER_RELAXATION = 1.6;
 let CELL_SIZE = 1;
 let BOUNDRY_VEL = 2;
-let TIME_STEP = 0.1
+let TIME_STEP = 0.1;
+let PRESSURE_CONSTANT = 10;
 //End hyperparameters
 
 //Classes
@@ -54,11 +59,11 @@ class VelocityVector {
     return this.immutable;
   };
   makeImmutable = (): void => {
-    this.immutable = true
-  }
+    this.immutable = true;
+  };
   makeMutable = (): void => {
-    this.immutable = false
-  }
+    this.immutable = false;
+  };
 }
 //End vector
 
@@ -74,14 +79,14 @@ class Cell {
   // mutCount: number
   x: number;
   y: number;
-  isFLuid: boolean;
+  isFluid: boolean;
   pressure: number = 0;
   cellSize: number = CELL_SIZE;
 
   constructor(_x: number, _y: number, _isFluid: boolean) {
     this.x = _x;
     this.y = _y;
-    this.isFLuid = _isFluid;
+    this.isFluid = _isFluid;
 
     // this.mutVArr = [false, false, false, false]
   }
@@ -144,8 +149,8 @@ class Cell {
   };
 
   applyVelocityValues = (): void => {
-    if(!this.isFLuid){
-        return
+    if (!this.isFluid) {
+      return;
     }
     for (let i = 0; i < 4; i++) {
       this.vArr[i].assignValue(this.tempVStorage[i]);
@@ -153,8 +158,8 @@ class Cell {
   };
 
   makeDivergenceFree = (): void => {
-    if(!this.isFLuid){
-        return
+    if (!this.isFluid) {
+      return;
     }
     let divergence: number = 0;
     divergence = this.vl.mag() + this.vu.mag() - this.vr.mag() - this.vd.mag();
@@ -173,12 +178,12 @@ class Cell {
   };
 
   makeObstacle = (): void => {
-    for(let i = 0; i<4; i++){
-        this.vArr[i].sudoAssignValue(0)
-        this.vArr[i].makeImmutable()
-        this.isFLuid = false
+    for (let i = 0; i < 4; i++) {
+      this.vArr[i].sudoAssignValue(0);
+      this.vArr[i].makeImmutable();
+      this.isFluid = false;
     }
-  }
+  };
 }
 //End Cell
 
@@ -230,7 +235,7 @@ class Fluid {
       }
       this.vertVArr.push(row);
     }
-    this.vertVArr.push(this.vertVArr[0]) //Loops back to the top
+    this.vertVArr.push(this.vertVArr[0]); //Loops back to the top
   };
 
   bindVelocitiesToCell = (): void => {
@@ -247,36 +252,37 @@ class Fluid {
   };
   applyBoundryConditions = (): void => {
     let currentCell: Cell;
-    for(let j= 0; j< this.cellArr.length; j++){
-        currentCell = this.cellArr[j][0]
-        currentCell.makeObstacle()
-        currentCell.vr.sudoAssignValue(BOUNDRY_VEL)
-        currentCell.vl.sudoAssignValue(BOUNDRY_VEL)
+    for (let j = 0; j < this.cellArr.length; j++) {
+      currentCell = this.cellArr[j][0];
+      currentCell.makeObstacle();
+      currentCell.vr.sudoAssignValue(BOUNDRY_VEL);
+      currentCell.vl.sudoAssignValue(BOUNDRY_VEL);
     }
-  }
+  };
   maintainAbsorbentBoundry = (): void => {
     let currentCell: Cell;
-    for(let j= 0; j< this.cellArr.length; j++){
-        currentCell = this.cellArr[j][0]
-        // currentCell.makeObstacle()
-        currentCell.vr.sudoAssignValue(currentCell.vl.mag())
-        // currentCell.vl.sudoAssignValue(BOUNDRY_VEL)
+    for (let j = 0; j < this.cellArr.length; j++) {
+      currentCell = this.cellArr[j][0];
+      // currentCell.makeObstacle()
+      currentCell.vr.sudoAssignValue(currentCell.vl.mag());
+      // currentCell.vl.sudoAssignValue(BOUNDRY_VEL)
     }
-  }
-
+  };
 
   makeFluidDivergenceFree = (iterations: number): void => {
-    for (let c = 0; c < iterations; c++)
+    for (let c = 0; c < iterations; c++) {
+      this.maintainAbsorbentBoundry();
       for (let j = 0; j < this.cellArr.length; j++) {
-        for (let i = j%2; i < this.cellArr[j].length; i+=2) {
-          this.cellArr[j][i].makeDivergenceFree()
+        for (let i = j % 2; i < this.cellArr[j].length; i += 2) {
+          this.cellArr[j][i].makeDivergenceFree();
         }
       }
       for (let j = 0; j < this.cellArr.length; j++) {
-        for (let i = (j+1)%2; i < this.cellArr[j].length; i+=2) {
-          this.cellArr[j][i].makeDivergenceFree()
+        for (let i = (j + 1) % 2; i < this.cellArr[j].length; i += 2) {
+          this.cellArr[j][i].makeDivergenceFree();
         }
       }
+    }
   };
 }
 
@@ -307,6 +313,45 @@ const initCanvas = (): void => {
 
   console.log("Canvas initialised");
 };
+
+// const displayCells = (cell_size = 3) => {
+//     ctx.clearRect(0, 0, canvas.width, canvas.height);
+//     for (let i = 0; i < HEIGHT; i++) {
+//       for (let j = 0; j < WIDTH; j++) {
+//         let cellToLookAt = cell_array[i][j];
+//         cellToLookAt.calculateDivergence();
+
+//         if (cellToLookAt.isFluid) {
+//           ctx.fillStyle = `rgb(${normalize(cellToLookAt.pressure)}, 0, ${
+//             255 - normalize(cellToLookAt.pressure)
+//           })`;
+//         } else {
+//           ctx.fillStyle = "green";
+//         }
+//         ctx.fillRect(j * cell_size, i * cell_size, cell_size, cell_size);
+//       }
+//     }
+// }
+
+const display = (): void => {
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+  let cell: Cell;
+  let colourParameter: number;
+  for (let j = 0; j < fluid.cellArr.length; j++) {
+    for (let i = 0; i < fluid.cellArr[0].length; i++) {
+      cell = fluid.cellArr[j][i];
+
+      if (cell.isFluid) {
+        colourParameter = cell.pressure * PRESSURE_CONSTANT;
+
+        ctx.fillStyle = `rgb(${colourParameter}, 0, ${255 - colourParameter})`;
+      } else {
+        ctx.fillStyle = "green";
+      }
+      ctx.fillRect(i * CELL_SIZE, j * CELL_SIZE, CELL_SIZE, CELL_SIZE);
+    }
+  }
+};
 const initGrid = (): void => {
   console.log("Grid initialised");
 };
@@ -328,17 +373,56 @@ const mainLoop = (): void => {
 };
 
 const init = (): void => {
-
   initCanvas();
-  
-  initGrid();
-  initWalls();
-  initBoundryConditions();
-  initFinalPreparations();
-  requestAnimationFrame(mainLoop);
+  fluid = new Fluid(200, 200);
+  fluid.createCells();
+  fluid.createHorizVelVectors();
+  fluid.createVertVelVectors();
+  fluid.bindVelocitiesToCell();
+  fluid.applyBoundryConditions();
+  fluid.makeFluidDivergenceFree(1000)
+  display()
+//   initGrid();
+//   initWalls();
+//   initBoundryConditions();
+//   initFinalPreparations();
+//   requestAnimationFrame(mainLoop);
+};
+
+/*
+//
+
+
+
+
+
+
+//
+
+
+
+
+
+//
+*/
+
+const debugValues = (e: any): void => {
+  let cell =
+    fluid.cellArr[Math.floor(e.layerY / CELL_SIZE)][
+      Math.floor(e.layerX / CELL_SIZE)
+    ];
+  //   cell.calculateDivergence();
+  //   let vels = cell.getVelocitiesValues();
+
+  console.log(
+    `Coordinates: ${e.layerX / CELL_SIZE}, ${
+      e.layerY / CELL_SIZE
+    }\nIsWall: ${!cell.isFluid}\nPressure of cell is: ${cell.pressure}`
+  );
 };
 
 //Event listeners
 addEventListener("DOMContentLoaded", init);
+addEventListener("mousemove", debugValues);
 
 //End event listeners
