@@ -1,117 +1,40 @@
-//Testing file
+class One{
+  constructor(){
+    this.id = Math.floor(Math.random()*100)
+    console.log("One created. ID: " + this.id)
+  }
+  doubleID = () => {
+    this.id *= 2
+    console.log("Doubled id to: "+ this.id)
+  }
+}
 
 
-class VelocityVector {
-    constructor(orient = 0, u = 0, v = 0, isImmutable = 0) {
-      this.u = u; //horizonatlly forward
-      this.v = v; //vertically down
-      this.orientation = orient;
-      this.isImmutable = isImmutable;
-      //Zero is horizonal, 1 is vertical
-    }
-    updateValues = (u, v) => {
-      if (this.isImmutable) {
-        return;
-      }
-      this.u = u;
-      this.v = v;
-      return this;
-    };
-    sudoUpdateValues = (u, v) => {
-      this.u = u;
-      this.v = v;
-      // return this;
-    };
-    add = (otherVector) => {
-      this.u += otherVector.u;
-      this.v += otherVector.v;
-      return this;
-    };
-    subtract = (otherVector) => {
-      this.u -= otherVector.u;
-      this.v -= otherVector.v;
-      return this;
-    };
-    divideBy = (scalar) => {
-      this.u /= scalar;
-      this.v /= scalar;
-      return this;
-    };
-    multiplyBy = (scalar) => {
-      this.u *= scalar;
-      this.v *= scalar;
-      return this;
-    };
-    getValue = () => {
-      return this.u * (this.orientation == 0) + this.v * (this.orientation == 1);
-    };
-    adjustValue = (value) => {
-      if (this.isImmutable) {
-        return;
-      }
-      this.u += (this.orientation == 0) * value;
-      this.v += (this.orientation == 1) * value;
-    };
-    gravity = (value) => {
-      if (this.isImmutable) {
-        return;
-      }
-      this.v += value;
-    };
-    copyThis = () => {
-      let newVec = new VelocityVector(
-        this.orientation,
-        this.u,
-        this.v,
-        this.isImmutable
-      );
-      return newVec;
-    };
+class Two{
+  constructor(){
+
   }
 
-// console.log()
-let vector = new VelocityVector(0, 2, 1, 1);
-console.log(vector.getValue())
-vector.adjustValue(2)
-console.log(vector.getValue())
-vector.sudoUpdateValues(5, 4)
-console.log(vector.getValue())
+  getOne = (_one) => {
+    console.log("getting one")
+    this.one = _one
+    console.log("Two's one is: "+this.one.id)
 
 
-BOUNDRY_VELOCITY = 3
+  }
+  doubleOneID = ()=> {
+    console.log("Doubling one of two")
+    this.one.doubleID()
+    console.log("Two's one's id is doubled to: "+ this.one.id)
+  }
 
+}
 
-const boundryConditions = () => {
-    for (let i = 0; i < velocityArrayHorizontal.length; i++) {
-      velocityArrayHorizontal[i][0].sudoUpdateValues(0, BOUNDRY_VELOCITY);
-      velocityArrayHorizontal[i][1].sudoUpdateValues(0, BOUNDRY_VELOCITY);
-      velocityArrayHorizontal[i][
-        velocityArrayHorizontal[0].length - 1
-      ].sudoUpdateValues( BOUNDRY_VELOCITY, 0);
-      velocityArrayHorizontal[i][
-        velocityArrayHorizontal[0].length - 2
-      ].sudoUpdateValues(10, BOUNDRY_VELOCITY);
-      console.log(velocityArrayHorizontal[0][velocityArrayHorizontal[0].length - 2].getValue());
-  
-  
-    }
-  };
-
-const initializeVelocityVectors = (width, height) => {
-    for (let y = 0; y < height; y++) {
-      let row = [];
-      for (let x = 0; x < width + 1; x++) {
-        row.push(new VelocityVector((orient = 1)));
-      }
-      velocityArrayHorizontal.push(row);
-    }
-    for (let y = 0; y < height + 1; y++) {
-      let row = [];
-      for (let x = 0; x < width; x++) {
-        row.push(new VelocityVector(1));
-      }
-      velocityArrayVertical.push(row);
-    }
-  };
-
-  initializeCells
+let o1 = new One()
+o1.doubleID()
+let d1 = new Two()
+d1.getOne(o1)
+d1.doubleOneID()
+console.log("Origiginal one's id is now: "+o1.id)
+o1.doubleID()
+console.log(d1.one.id)

@@ -52,6 +52,12 @@ class VelocityVector {
   isImmutable = (): boolean => {
     return this.immutable;
   };
+  makeImmutable = (): void => {
+    this.immutable = true
+  }
+  makeMutable = (): void => {
+    this.immutable = false
+  }
 }
 //End vector
 
@@ -71,7 +77,7 @@ class Cell {
   pressure: number = 0;
   cellSize: number = CELL_SIZE;
 
-  constructor(_x: number, _y:number, _isFluid:boolean) {
+  constructor(_x: number, _y: number, _isFluid: boolean) {
     this.x = _x;
     this.y = _y;
     this.isFLuid = _isFluid;
@@ -137,12 +143,18 @@ class Cell {
   };
 
   applyVelocityValues = (): void => {
+    if(!this.isFLuid){
+        return
+    }
     for (let i = 0; i < 4; i++) {
       this.vArr[i].assignValue(this.tempVStorage[i]);
     }
   };
 
   makeDivergenceFree = (): void => {
+    if(!this.isFLuid){
+        return
+    }
     let divergence: number = 0;
     divergence = this.vl.mag() + this.vu.mag() - this.vr.mag() - this.vd.mag();
     // let mutLen = this.mutVArr.length
@@ -158,6 +170,14 @@ class Cell {
   resetPressure = (): void => {
     this.pressure = 0;
   };
+
+  makeObstacle = (): void => {
+    for(let i = 0; i<4; i++){
+        this.vArr[i].sudoAssignValue(0)
+        this.vArr[i].makeImmutable()
+        this.isFLuid = false
+    }
+  }
 }
 //End Cell
 
@@ -169,7 +189,7 @@ class Fluid {
   countY: number;
   horizVArr: VelocityVector[][];
   vertVArr: VelocityVector[][];
-  cellArr: Cell[][] = []
+  cellArr: Cell[][] = [];
 
   constructor(_countX: number, _countY: number) {
     this.countX = _countX;
@@ -180,11 +200,11 @@ class Fluid {
     let row: Cell[] = [];
 
     for (let j = 0; j < this.countY; j++) {
-        row = []
+      row = [];
       for (let i = 0; i < this.countX; i++) {
-        row.push(new Cell(i*CELL_SIZE, j*CELL_SIZE, true))
+        row.push(new Cell(i * CELL_SIZE, j * CELL_SIZE, true));
       }
-      this.cellArr.push(row)
+      this.cellArr.push(row);
     }
   };
 
@@ -192,26 +212,52 @@ class Fluid {
     let row: VelocityVector[] = [];
 
     for (let j = 0; j < this.countY; j++) {
-        row = []
-      for (let i = 0; i < this.countX+1; i++) {
-        row.push(new VelocityVector(0, true))
+      row = [];
+      for (let i = 0; i < this.countX + 1; i++) {
+        row.push(new VelocityVector(0, true));
       }
-      this.horizVArr.push(row)
+      this.horizVArr.push(row);
     }
-  }
+  };
   createVertVelVectors = (): void => {
     let row: VelocityVector[] = [];
 
-    for (let j = 0; j < this.countY+1; j++) {
-        row = []
+    for (let j = 0; j < this.countY; j++) {
+      row = [];
       for (let i = 0; i < this.countX; i++) {
-        row.push(new VelocityVector(0, true))
+        row.push(new VelocityVector(0, true));
       }
-      this.vertVArr.push(row)
+      this.vertVArr.push(row);
     }
-  }
+    this.vertVArr.push(this.vertVArr[0]) //Loops back to the top
+  };
 
+  bindVelocitiesToCell = (): void => {
+    for (let j = 0; j < this.cellArr.length; j++) {
+      for (let i = 0; i < this.cellArr[j].length; i++) {
+        this.cellArr[j][i].assignVelocities(
+          this.horizVArr[j][i],
+          this.vertVArr[j][i],
+          this.horizVArr[j][i + 1],
+          this.vertVArr[j + 1][i]
+        );
+      }
+    }
+  };
 
+  makeFluidDivergenceFree = (iterations: number): void => {
+    for (let c = 0; c < iterations; c++)
+      for (let j = 0; j < this.cellArr.length; j++) {
+        for (let i = j%2; i < this.cellArr[j].length; i+=2) {
+          this.cellArr[j][i].makeDivergenceFree()
+        }
+      }
+      for (let j = 0; j < this.cellArr.length; j++) {
+        for (let i = (j+1)%2; i < this.cellArr[j].length; i+=2) {
+          this.cellArr[j][i].makeDivergenceFree()
+        }
+      }
+  };
 }
 
 //End fluid
@@ -221,7 +267,7 @@ class Fluid {
 //Global variables
 let canvas: any;
 let ctx: ctxObject;
-
+let fluid: Fluid;
 //End globals
 
 const initCanvas = (): void => {
@@ -262,7 +308,9 @@ const mainLoop = (): void => {
 };
 
 const init = (): void => {
+
   initCanvas();
+  
   initGrid();
   initWalls();
   initBoundryConditions();
