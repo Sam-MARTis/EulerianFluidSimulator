@@ -74,7 +74,7 @@ class Cell {
   vr: VelocityVector;
   vd: VelocityVector;
   vArr: VelocityVector[];
-  mutVArr: number[];
+  mutVArr: number[] = [];
   tempVStorage: number[];
   // mutCount: number
   x: number;
@@ -189,12 +189,12 @@ class Cell {
 
 //Fluid
 class Fluid {
-  dimX: number;
-  dimY: number;
-  countX: number;
-  countY: number;
-  horizVArr: VelocityVector[][];
-  vertVArr: VelocityVector[][];
+  dimX: number = 0;
+  dimY: number = 0;
+  countX: number = 0;
+  countY: number = 0;
+  horizVArr: VelocityVector[][] = [];
+  vertVArr: VelocityVector[][] = [];
   cellArr: Cell[][] = [];
 
   constructor(_countX: number, _countY: number) {
@@ -305,11 +305,11 @@ const initCanvas = (): void => {
   ctx = canvas.getContext("2d");
   ctx.scale(devicePixelRatio, devicePixelRatio);
 
-  ctx.beginPath();
-  ctx.strokeStyle = "red";
-  ctx.moveTo(100, 100);
-  ctx.lineTo(200, 200);
-  ctx.stroke();
+//   ctx.beginPath();
+//   ctx.strokeStyle = "red";
+//   ctx.moveTo(100, 100);
+//   ctx.lineTo(200, 200);
+//   ctx.stroke();
 
   console.log("Canvas initialised");
 };
@@ -337,6 +337,7 @@ const display = (): void => {
   ctx.clearRect(0, 0, canvas.width, canvas.height);
   let cell: Cell;
   let colourParameter: number;
+  console.log(fluid.cellArr.length)
   for (let j = 0; j < fluid.cellArr.length; j++) {
     for (let i = 0; i < fluid.cellArr[0].length; i++) {
       cell = fluid.cellArr[j][i];
@@ -382,6 +383,7 @@ const init = (): void => {
   fluid.applyBoundryConditions();
   fluid.makeFluidDivergenceFree(1000)
   display()
+  console.log("Display completed")
 //   initGrid();
 //   initWalls();
 //   initBoundryConditions();
