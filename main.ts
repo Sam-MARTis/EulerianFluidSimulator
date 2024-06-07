@@ -15,7 +15,8 @@ interface ctxObject {
 
 let OVER_RELAXATION = 1.6;
 let CELL_SIZE = 1;
-
+let BOUNDRY_VEL = 2;
+let TIME_STEP = 0.1
 //End hyperparameters
 
 //Classes
@@ -244,6 +245,25 @@ class Fluid {
       }
     }
   };
+  applyBoundryConditions = (): void => {
+    let currentCell: Cell;
+    for(let j= 0; j< this.cellArr.length; j++){
+        currentCell = this.cellArr[j][0]
+        currentCell.makeObstacle()
+        currentCell.vr.sudoAssignValue(BOUNDRY_VEL)
+        currentCell.vl.sudoAssignValue(BOUNDRY_VEL)
+    }
+  }
+  maintainAbsorbentBoundry = (): void => {
+    let currentCell: Cell;
+    for(let j= 0; j< this.cellArr.length; j++){
+        currentCell = this.cellArr[j][0]
+        // currentCell.makeObstacle()
+        currentCell.vr.sudoAssignValue(currentCell.vl.mag())
+        // currentCell.vl.sudoAssignValue(BOUNDRY_VEL)
+    }
+  }
+
 
   makeFluidDivergenceFree = (iterations: number): void => {
     for (let c = 0; c < iterations; c++)
