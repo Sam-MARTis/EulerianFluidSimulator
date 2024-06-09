@@ -1,6 +1,6 @@
 //End interfaces
 //Hyperparameters
-var OVER_RELAXATION = 1.6;
+var OVER_RELAXATION = 1.998;
 var CELL_SIZE = 1;
 var BOUNDRY_VEL = 2;
 var TIME_STEP = 0.1;
@@ -43,6 +43,7 @@ var VelocityVector = /** @class */ (function () {
         };
         this.magnitude = _magnitude;
         this.immutable = _immutable;
+        this.id = Math.floor(Math.random() * 10000);
     }
     return VelocityVector;
 }());
@@ -112,6 +113,7 @@ var Cell = /** @class */ (function () {
             }
             var divergence = 0;
             divergence = _this.vl.mag() + _this.vu.mag() - _this.vr.mag() - _this.vd.mag();
+            // console.log(divergence)
             // let mutLen = this.mutVArr.length
             _this.pressure += divergence;
             divergence /= _this.mutVArr.length;
@@ -165,7 +167,7 @@ var Fluid = /** @class */ (function () {
             for (var j = 0; j < _this.countY; j++) {
                 row = [];
                 for (var i = 0; i < _this.countX + 1; i++) {
-                    row.push(new VelocityVector(0, true));
+                    row.push(new VelocityVector(0, false));
                 }
                 _this.horizVArr.push(row);
             }
@@ -175,7 +177,7 @@ var Fluid = /** @class */ (function () {
             for (var j = 0; j < _this.countY; j++) {
                 row = [];
                 for (var i = 0; i < _this.countX; i++) {
-                    row.push(new VelocityVector(0, true));
+                    row.push(new VelocityVector(0, false));
                 }
                 _this.vertVArr.push(row);
             }
@@ -187,11 +189,24 @@ var Fluid = /** @class */ (function () {
                     _this.cellArr[j][i].assignVelocities(_this.horizVArr[j][i], _this.vertVArr[j][i], _this.horizVArr[j][i + 1], _this.vertVArr[j + 1][i]);
                 }
             }
+            for (var j = 0; j < _this.cellArr.length; j++) {
+                for (var i = 0; i < _this.cellArr[0].length; i++) {
+                    _this.cellArr[j][i].checkSurroundings();
+                }
+            }
         };
         this.applyBoundryConditions = function () {
             var currentCell;
             for (var j = 0; j < _this.cellArr.length; j++) {
                 currentCell = _this.cellArr[j][0];
+                currentCell.makeObstacle();
+                currentCell.vr.sudoAssignValue(BOUNDRY_VEL);
+                currentCell.vl.sudoAssignValue(BOUNDRY_VEL);
+                currentCell = _this.cellArr[j][1];
+                currentCell.makeObstacle();
+                currentCell.vr.sudoAssignValue(BOUNDRY_VEL);
+                currentCell.vl.sudoAssignValue(BOUNDRY_VEL);
+                currentCell = _this.cellArr[j][2];
                 currentCell.makeObstacle();
                 currentCell.vr.sudoAssignValue(BOUNDRY_VEL);
                 currentCell.vl.sudoAssignValue(BOUNDRY_VEL);
@@ -209,13 +224,38 @@ var Fluid = /** @class */ (function () {
         this.makeFluidDivergenceFree = function (iterations) {
             for (var c = 0; c < iterations; c++) {
                 _this.maintainAbsorbentBoundry();
+                for (var i = 0; i < _this.cellArr[0].length; i++) {
+                    for (var j = 0; j < _this.cellArr.length; j++) {
+                        _this.cellArr[j][i].makeDivergenceFree();
+                    }
+                }
+                for (var j = 0; j < _this.cellArr.length; j++) {
+                    for (var i = 0; i < _this.cellArr[j].length; i++) {
+                        _this.cellArr[j][i].makeDivergenceFree();
+                    }
+                }
                 for (var j = 0; j < _this.cellArr.length; j++) {
                     for (var i = j % 2; i < _this.cellArr[j].length; i += 2) {
                         _this.cellArr[j][i].makeDivergenceFree();
                     }
                 }
+                // for (let j = 0; j < this.cellArr.length; j++) {
+                //   for (let i = 0; i < this.cellArr[j].length; i ++) {
+                //     this.cellArr[j][i].makeDivergenceFree();
+                //   }
+                // }
                 for (var j = 0; j < _this.cellArr.length; j++) {
                     for (var i = (j + 1) % 2; i < _this.cellArr[j].length; i += 2) {
+                        _this.cellArr[j][i].makeDivergenceFree();
+                    }
+                }
+                for (var j = 0; j < _this.cellArr.length; j++) {
+                    for (var i = 0; i < _this.cellArr[j].length; i++) {
+                        _this.cellArr[j][i].makeDivergenceFree();
+                    }
+                }
+                for (var i = 0; i < _this.cellArr[0].length; i++) {
+                    for (var j = 0; j < _this.cellArr.length; j++) {
                         _this.cellArr[j][i].makeDivergenceFree();
                     }
                 }
@@ -307,7 +347,7 @@ var init = function () {
     fluid.createVertVelVectors();
     fluid.bindVelocitiesToCell();
     fluid.applyBoundryConditions();
-    fluid.makeFluidDivergenceFree(1000);
+    fluid.makeFluidDivergenceFree(100);
     display();
     console.log("Display completed");
     //   initGrid();
@@ -336,9 +376,14 @@ var debugValues = function (e) {
     var cell = fluid.cellArr[Math.floor(e.layerY / CELL_SIZE)][Math.floor(e.layerX / CELL_SIZE)];
     //   cell.calculateDivergence();
     //   let vels = cell.getVelocitiesValues();
-    console.log("Coordinates: ".concat(e.layerX / CELL_SIZE, ", ").concat(e.layerY / CELL_SIZE, "\nIsWall: ").concat(!cell.isFluid, "\nPressure of cell is: ").concat(cell.pressure));
+    console.log("Coordinates: ".concat(e.layerX / CELL_SIZE, ", ").concat(e.layerY / CELL_SIZE, "\nIsWall: ").concat(!cell.isFluid, "\nPressure of cell is: ").concat(cell.pressure, "\n    \n Velocities:\n    \nvl: ").concat(cell.vl.mag(), ", ").concat(cell.vl.isImmutable(), ", ").concat(cell.vl.id, "\n    \nvu: ").concat(cell.vu.mag(), ", ").concat(cell.vu.isImmutable(), ", ").concat(cell.vu.id, "\n    \nvr: ").concat(cell.vr.mag(), ", ").concat(cell.vr.isImmutable(), ", ").concat(cell.vr.id, "\n    \nvd: ").concat(cell.vd.mag(), ", ").concat(cell.vd.isImmutable(), ", ").concat(cell.vd.id));
 };
+var button = document.getElementById("divergenceStep");
 //Event listeners
 addEventListener("DOMContentLoaded", init);
 addEventListener("mousemove", debugValues);
+button.addEventListener("click", function () {
+    console.log("Divergence calculating");
+    fluid.makeFluidDivergenceFree(100);
+});
 //End event listeners

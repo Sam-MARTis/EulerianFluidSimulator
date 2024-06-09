@@ -17,7 +17,7 @@ interface ctxObject {
 
 //Hyperparameters
 
-let OVER_RELAXATION = 1.6;
+let OVER_RELAXATION = 1.998;
 let CELL_SIZE = 1;
 let BOUNDRY_VEL = 2;
 let TIME_STEP = 0.1;
@@ -30,10 +30,12 @@ let PRESSURE_CONSTANT = 10;
 class VelocityVector {
   magnitude: number;
   immutable: boolean;
+  id: number;
 
   constructor(_magnitude: number = 0, _immutable: boolean = false) {
     this.magnitude = _magnitude;
     this.immutable = _immutable;
+    this.id = Math.floor(Math.random() * 10000);
   }
 
   incrementValue = (_value: number): void => {
@@ -163,6 +165,7 @@ class Cell {
     }
     let divergence: number = 0;
     divergence = this.vl.mag() + this.vu.mag() - this.vr.mag() - this.vd.mag();
+    // console.log(divergence)
     // let mutLen = this.mutVArr.length
     this.pressure += divergence;
     divergence /= this.mutVArr.length;
@@ -220,7 +223,7 @@ class Fluid {
     for (let j = 0; j < this.countY; j++) {
       row = [];
       for (let i = 0; i < this.countX + 1; i++) {
-        row.push(new VelocityVector(0, true));
+        row.push(new VelocityVector(0, false));
       }
       this.horizVArr.push(row);
     }
@@ -231,7 +234,7 @@ class Fluid {
     for (let j = 0; j < this.countY; j++) {
       row = [];
       for (let i = 0; i < this.countX; i++) {
-        row.push(new VelocityVector(0, true));
+        row.push(new VelocityVector(0, false));
       }
       this.vertVArr.push(row);
     }
@@ -249,11 +252,24 @@ class Fluid {
         );
       }
     }
+    for (let j = 0; j < this.cellArr.length; j++) {
+      for (let i = 0; i < this.cellArr[0].length; i++) {
+        this.cellArr[j][i].checkSurroundings();
+      }
+    }
   };
   applyBoundryConditions = (): void => {
     let currentCell: Cell;
     for (let j = 0; j < this.cellArr.length; j++) {
       currentCell = this.cellArr[j][0];
+      currentCell.makeObstacle();
+      currentCell.vr.sudoAssignValue(BOUNDRY_VEL);
+      currentCell.vl.sudoAssignValue(BOUNDRY_VEL);
+      currentCell = this.cellArr[j][1];
+      currentCell.makeObstacle();
+      currentCell.vr.sudoAssignValue(BOUNDRY_VEL);
+      currentCell.vl.sudoAssignValue(BOUNDRY_VEL);
+      currentCell = this.cellArr[j][2];
       currentCell.makeObstacle();
       currentCell.vr.sudoAssignValue(BOUNDRY_VEL);
       currentCell.vl.sudoAssignValue(BOUNDRY_VEL);
@@ -272,13 +288,40 @@ class Fluid {
   makeFluidDivergenceFree = (iterations: number): void => {
     for (let c = 0; c < iterations; c++) {
       this.maintainAbsorbentBoundry();
+
+      for (let i = 0; i < this.cellArr[0].length; i++) {
+        for (let j = 0; j < this.cellArr.length; j++) {
+          this.cellArr[j][i].makeDivergenceFree();
+        }
+      }
+
+      for (let j = 0; j < this.cellArr.length; j++) {
+        for (let i = 0; i < this.cellArr[j].length; i++) {
+          this.cellArr[j][i].makeDivergenceFree();
+        }
+      }
       for (let j = 0; j < this.cellArr.length; j++) {
         for (let i = j % 2; i < this.cellArr[j].length; i += 2) {
           this.cellArr[j][i].makeDivergenceFree();
         }
       }
+      // for (let j = 0; j < this.cellArr.length; j++) {
+      //   for (let i = 0; i < this.cellArr[j].length; i ++) {
+      //     this.cellArr[j][i].makeDivergenceFree();
+      //   }
+      // }
       for (let j = 0; j < this.cellArr.length; j++) {
         for (let i = (j + 1) % 2; i < this.cellArr[j].length; i += 2) {
+          this.cellArr[j][i].makeDivergenceFree();
+        }
+      }
+      for (let j = 0; j < this.cellArr.length; j++) {
+        for (let i = 0; i < this.cellArr[j].length; i++) {
+          this.cellArr[j][i].makeDivergenceFree();
+        }
+      }
+      for (let i = 0; i < this.cellArr[0].length; i++) {
+        for (let j = 0; j < this.cellArr.length; j++) {
           this.cellArr[j][i].makeDivergenceFree();
         }
       }
@@ -305,11 +348,11 @@ const initCanvas = (): void => {
   ctx = canvas.getContext("2d");
   ctx.scale(devicePixelRatio, devicePixelRatio);
 
-//   ctx.beginPath();
-//   ctx.strokeStyle = "red";
-//   ctx.moveTo(100, 100);
-//   ctx.lineTo(200, 200);
-//   ctx.stroke();
+  //   ctx.beginPath();
+  //   ctx.strokeStyle = "red";
+  //   ctx.moveTo(100, 100);
+  //   ctx.lineTo(200, 200);
+  //   ctx.stroke();
 
   console.log("Canvas initialised");
 };
@@ -337,7 +380,7 @@ const display = (): void => {
   ctx.clearRect(0, 0, canvas.width, canvas.height);
   let cell: Cell;
   let colourParameter: number;
-  console.log(fluid.cellArr.length)
+  console.log(fluid.cellArr.length);
   for (let j = 0; j < fluid.cellArr.length; j++) {
     for (let i = 0; i < fluid.cellArr[0].length; i++) {
       cell = fluid.cellArr[j][i];
@@ -381,14 +424,14 @@ const init = (): void => {
   fluid.createVertVelVectors();
   fluid.bindVelocitiesToCell();
   fluid.applyBoundryConditions();
-  fluid.makeFluidDivergenceFree(1000)
-  display()
-  console.log("Display completed")
-//   initGrid();
-//   initWalls();
-//   initBoundryConditions();
-//   initFinalPreparations();
-//   requestAnimationFrame(mainLoop);
+  fluid.makeFluidDivergenceFree(100);
+  display();
+  console.log("Display completed");
+  //   initGrid();
+  //   initWalls();
+  //   initBoundryConditions();
+  //   initFinalPreparations();
+  //   requestAnimationFrame(mainLoop);
 };
 
 /*
@@ -419,12 +462,23 @@ const debugValues = (e: any): void => {
   console.log(
     `Coordinates: ${e.layerX / CELL_SIZE}, ${
       e.layerY / CELL_SIZE
-    }\nIsWall: ${!cell.isFluid}\nPressure of cell is: ${cell.pressure}`
+    }\nIsWall: ${!cell.isFluid}\nPressure of cell is: ${cell.pressure}
+    \n Velocities:
+    \nvl: ${cell.vl.mag()}, ${cell.vl.isImmutable()}, ${cell.vl.id}
+    \nvu: ${cell.vu.mag()}, ${cell.vu.isImmutable()}, ${cell.vu.id}
+    \nvr: ${cell.vr.mag()}, ${cell.vr.isImmutable()}, ${cell.vr.id}
+    \nvd: ${cell.vd.mag()}, ${cell.vd.isImmutable()}, ${cell.vd.id}`
   );
 };
+
+let button: any = document.getElementById("divergenceStep");
 
 //Event listeners
 addEventListener("DOMContentLoaded", init);
 addEventListener("mousemove", debugValues);
+button.addEventListener("click", () => {
+  console.log("Divergence calculating");
+  fluid.makeFluidDivergenceFree(100);
+});
 
 //End event listeners
