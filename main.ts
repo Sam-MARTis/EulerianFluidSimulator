@@ -387,30 +387,43 @@ class Fluid {
       //   }
       // }
 
-      if(x_switch==1){
-        if(y_switch==1){
-          // dy -= 0.5
-          xVelWeights = [(1-dx)*(1-(dy-0.5)), (dx)*(1-(dy-0.5)), (1-dx)*((dy-0.5)), (dx)*((dy-0.5))]
-          yVelWeights = [(1-(dx-0.5))*dy, (1-(dx-0.5))*(1-dy), (dx-0.5)*dy, (dx-0.5)*(1-dy)]
-        }
-        else{
-          xVelWeights = [(1-dx)*(1-(0.5-dy)), (dx)*(1-(0.5-dy)), (1-dx)*((0.5-dy)), (dx)*((0.5-dy))]
-          yVelWeights = [(1-(dx-0.5))*(dy), (1-(dx-0.5))*(1-(dy)), (dx-0.5)*(dy), (dx-0.5)*(1-(dy))]
-        }
-      }
-      else{
-        if(y_switch==1){
-          xVelWeights = [(1-dx)*(1-(dy-0.5)), (dx)*(1-(dy-0.5)), (1-dx)*((dy-0.5)), (dx)*((dy-0.5))]
-          yVelWeights = [(1-(0.5-dx))*dy, (1-(0.5-dx))*(1-dy), (0.5-dx)*dy, (0.5-dx)*(1-dy)]
-        }
-        else{
-          xVelWeights = [(1-dx)*(1-(0.5-dy)), (dx)*(1-(0.5-dy)), (1-dx)*((0.5-dy)), (dx)*((0.5-dy))]
-          yVelWeights = [(1-(0.5-dx))*(dy), (1-(0.5-dx))*(1-(dy)), (0.5-dx)*(dy), (0.5-dx)*(1-(dy))]
-        }
-      }
+      // if(x_switch==1){
+      //   if(y_switch==1){
+      //     // dy -= 0.5
+      //     xVelWeights = [(1-dx)*(1-(dy-0.5)), (dx)*(1-(dy-0.5)), (1-dx)*((dy-0.5)), (dx)*((dy-0.5))]
+      //     yVelWeights = [(1-(dx-0.5))*(dy), (1-(dx-0.5))*(1-(dy)), (dx-0.5)*(dy), (dx-0.5)*(1-(dy))]
+      //   }
+      //   else{
+      //     xVelWeights = [(1-dx)*(1-(0.5-dy)), (dx)*(1-(0.5-dy)), (1-dx)*((0.5-dy)), (dx)*((0.5-dy))]
+      //     yVelWeights = [(1-(dx-0.5))*(dy), (1-(dx-0.5))*(1-(dy)), (dx-0.5)*(dy), (dx-0.5)*(1-(dy))]
+      //   }
+      // }
+      // else{
+      //   if(y_switch==1){
+      //     xVelWeights = [(1-dx)*(1-(dy-0.5)), (dx)*(1-(dy-0.5)), (1-dx)*((dy-0.5)), (dx)*((dy-0.5))]
+      //     yVelWeights = [(1-(0.5-dx))*(dy), (1-(0.5-dx))*(1-(dy)), (0.5-dx)*(dy), (0.5-dx)*(1-(dy))]
+      //   }
+      //   else{
+      //     xVelWeights = [(1-dx)*(1-(0.5-dy)), (dx)*(1-(0.5-dy)), (1-dx)*((0.5-dy)), (dx)*((0.5-dy))]
+      //     yVelWeights = [(1-(0.5-dx))*(dy), (1-(0.5-dx))*(1-(dy)), (0.5-dx)*(dy), (0.5-dx)*(1-(dy))]
+      //   }
+      // }
       velXArr = [currentCell.vl.mag(), currentCell.vr.mag(), CellX.vl.mag(), CellY.vr.mag()]
       velYArr = [currentCell.vd.mag(), currentCell.vu.mag(), CellY.vd.mag(), CellY.vu.mag()]
       if(y_switch==1){
+
+      }
+      if(x_switch==1){
+        yVelWeights = [(1-(dx-0.5))*(dy), (1-(dx-0.5))*(1-(dy)), (dx-0.5)*(dy), (dx-0.5)*(1-(dy))]
+      }
+      else{
+        yVelWeights = [(1-(0.5-dx))*(dy), (1-(0.5-dx))*(1-(dy)), (0.5-dx)*(dy), (0.5-dx)*(1-(dy))]
+      }
+      if(y_switch==1){
+        xVelWeights = [(1-dx)*(1-(dy-0.5)), (dx)*(1-(dy-0.5)), (1-dx)*((dy-0.5)), (dx)*((dy-0.5))]
+      }
+      else{
+        xVelWeights = [(1-dx)*(1-(0.5-dy)), (dx)*(1-(0.5-dy)), (1-dx)*((0.5-dy)), (dx)*((0.5-dy))]
 
       }
 
