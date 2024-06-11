@@ -410,9 +410,7 @@ class Fluid {
       // }
       velXArr = [currentCell.vl.mag(), currentCell.vr.mag(), CellX.vl.mag(), CellY.vr.mag()]
       velYArr = [currentCell.vd.mag(), currentCell.vu.mag(), CellY.vd.mag(), CellY.vu.mag()]
-      if(y_switch==1){
 
-      }
       if(x_switch==1){
         yVelWeights = [(1-(dx-0.5))*(dy), (1-(dx-0.5))*(1-(dy)), (dx-0.5)*(dy), (dx-0.5)*(1-(dy))]
       }
@@ -426,9 +424,13 @@ class Fluid {
         xVelWeights = [(1-dx)*(1-(0.5-dy)), (dx)*(1-(0.5-dy)), (1-dx)*((0.5-dy)), (dx)*((0.5-dy))]
 
       }
-
-
-
+      let vx:number = 0
+      let vy: number = 0
+      for(let i=0; i<4; i++){
+        vx += velXArr[i]*xVelWeights[i];
+        vy += velYArr[i]*yVelWeights[i];
+      }
+      return [vx, vy]
       
     }
     
