@@ -305,11 +305,7 @@ class Fluid {
           this.cellArr[j][i].makeDivergenceFree();
         }
       }
-      // for (let j = 0; j < this.cellArr.length; j++) {
-      //   for (let i = 0; i < this.cellArr[j].length; i ++) {
-      //     this.cellArr[j][i].makeDivergenceFree();
-      //   }
-      // }
+
       for (let j = 0; j < this.cellArr.length; j++) {
         for (let i = (j + 1) % 2; i < this.cellArr[j].length; i += 2) {
           this.cellArr[j][i].makeDivergenceFree();
@@ -360,99 +356,88 @@ class Fluid {
 
     if(dy> 0.5){
       y_switch = 1
-      // dy -= 0.5
-      
     }
     else{
       y_switch = -1
-      // dy= 0.5 - dy
     }
     if(dx>0.5){
       x_switch = 1
-      // dx -= 0.5
     }
     else{
       x_switch = -1
-      // dx = 0.5-dx
     }
+    let CellX: Cell
+    let CellY: Cell
  
     let currentCell = this.cellArr[Math.floor(y_norm)][Math.floor(x_norm)]
-    if(x_norm>=1 && x_norm<=this.countX-2 && y_norm>=1 && y_norm <= this.countY-2){
-      let CellX = this.cellArr[Math.floor(y_norm) + y_switch][Math.floor(x_norm)]
-      let CellY = this.cellArr[Math.floor(y_norm) + y_switch][Math.floor(x_norm)]
-
-      // if(x_switch==1){
-      //   if(y_switch==1){
-      //     velX+= 
-      //   }
-      // }
-
-      // if(x_switch==1){
-      //   if(y_switch==1){
-      //     // dy -= 0.5
-      //     xVelWeights = [(1-dx)*(1-(dy-0.5)), (dx)*(1-(dy-0.5)), (1-dx)*((dy-0.5)), (dx)*((dy-0.5))]
-      //     yVelWeights = [(1-(dx-0.5))*(dy), (1-(dx-0.5))*(1-(dy)), (dx-0.5)*(dy), (dx-0.5)*(1-(dy))]
-      //   }
-      //   else{
-      //     xVelWeights = [(1-dx)*(1-(0.5-dy)), (dx)*(1-(0.5-dy)), (1-dx)*((0.5-dy)), (dx)*((0.5-dy))]
-      //     yVelWeights = [(1-(dx-0.5))*(dy), (1-(dx-0.5))*(1-(dy)), (dx-0.5)*(dy), (dx-0.5)*(1-(dy))]
-      //   }
-      // }
-      // else{
-      //   if(y_switch==1){
-      //     xVelWeights = [(1-dx)*(1-(dy-0.5)), (dx)*(1-(dy-0.5)), (1-dx)*((dy-0.5)), (dx)*((dy-0.5))]
-      //     yVelWeights = [(1-(0.5-dx))*(dy), (1-(0.5-dx))*(1-(dy)), (0.5-dx)*(dy), (0.5-dx)*(1-(dy))]
-      //   }
-      //   else{
-      //     xVelWeights = [(1-dx)*(1-(0.5-dy)), (dx)*(1-(0.5-dy)), (1-dx)*((0.5-dy)), (dx)*((0.5-dy))]
-      //     yVelWeights = [(1-(0.5-dx))*(dy), (1-(0.5-dx))*(1-(dy)), (0.5-dx)*(dy), (0.5-dx)*(1-(dy))]
-      //   }
-      // }
-      velXArr = [currentCell.vl.mag(), currentCell.vr.mag(), CellX.vl.mag(), CellY.vr.mag()]
-      velYArr = [currentCell.vd.mag(), currentCell.vu.mag(), CellY.vd.mag(), CellY.vu.mag()]
-
-      if(x_switch==1){
-        yVelWeights = [(1-(dx-0.5))*(dy), (1-(dx-0.5))*(1-(dy)), (dx-0.5)*(dy), (dx-0.5)*(1-(dy))]
+    if(x_norm>=1 && x_norm< this.countX-1 && y_norm>=1 && y_norm < this.countY-1){
+      CellX = this.cellArr[Math.floor(y_norm)][Math.floor(x_norm) + x_switch]
+      CellY = this.cellArr[Math.floor(y_norm) + y_switch][Math.floor(x_norm)]
+    }
+    if(x_norm<1){
+      return [BOUNDRY_VEL, 0]
+    }
+    else{
+      if(x_norm>this.countX-1){
+        if(x_switch== 1){
+          CellX = currentCell
+        }
+        else{
+          CellX = this.cellArr[Math.floor(y_norm)][Math.floor(x_norm) + x_switch]
+        }
       }
       else{
-        yVelWeights = [(1-(0.5-dx))*(dy), (1-(0.5-dx))*(1-(dy)), (0.5-dx)*(dy), (0.5-dx)*(1-(dy))]
+        CellX = this.cellArr[Math.floor(y_norm)][Math.floor(x_norm) + x_switch]
       }
-      if(y_switch==1){
-        xVelWeights = [(1-dx)*(1-(dy-0.5)), (dx)*(1-(dy-0.5)), (1-dx)*((dy-0.5)), (dx)*((dy-0.5))]
+
+    }
+    if((y_norm<1) && (y_switch == -1)){
+      CellY = this.cellArr[this.cellArr.length][Math.floor(x_norm)]
+    }
+    else{
+      if((y_norm>=this.countY - 1)&&(y_switch == 1)){
+        CellY = this.cellArr[0][Math.floor(x_norm)]
       }
       else{
-        xVelWeights = [(1-dx)*(1-(0.5-dy)), (dx)*(1-(0.5-dy)), (1-dx)*((0.5-dy)), (dx)*((0.5-dy))]
-
+        CellY = this.cellArr[Math.floor(y_norm) + y_switch][Math.floor(x_norm)]
       }
-      let vx:number = 0
-      let vy: number = 0
-      for(let i=0; i<4; i++){
-        vx += velXArr[i]*xVelWeights[i];
-        vy += velYArr[i]*yVelWeights[i];
-      }
-      return [vx, vy]
-      
     }
     
+
+
+
+
+    velXArr = [currentCell.vl.mag(), currentCell.vr.mag(), CellX.vl.mag(), CellY.vr.mag()]
+    velYArr = [currentCell.vd.mag(), currentCell.vu.mag(), CellY.vd.mag(), CellY.vu.mag()]
+
+    if(x_switch==1){
+      yVelWeights = [(1-(dx-0.5))*(dy), (1-(dx-0.5))*(1-(dy)), (dx-0.5)*(dy), (dx-0.5)*(1-(dy))]
+    }
+    else{
+      yVelWeights = [(1-(0.5-dx))*(dy), (1-(0.5-dx))*(1-(dy)), (0.5-dx)*(dy), (0.5-dx)*(1-(dy))]
+    }
+    if(y_switch==1){
+      xVelWeights = [(1-dx)*(1-(dy-0.5)), (dx)*(1-(dy-0.5)), (1-dx)*((dy-0.5)), (dx)*((dy-0.5))]
+    }
+    else{
+      xVelWeights = [(1-dx)*(1-(0.5-dy)), (dx)*(1-(0.5-dy)), (1-dx)*((0.5-dy)), (dx)*((0.5-dy))]
+
+    }
     
 
 
 
-
-    return [0,0,0]
+    let vx:number = 0
+    let vy: number = 0
+    for(let i=0; i<4; i++){
+      vx += velXArr[i]*xVelWeights[i];
+      vy += velYArr[i]*yVelWeights[i];
+    }
+    return [vx, vy]
 
     
 
 
-    let mainCellToLookAt = this.cellArr[Math.floor(y/CELL_SIZE)][Math.floor(x/CELL_SIZE)]
-
-    // let vel = this.cellArr[Math.floor(y/CELL_SIZE)][Math.floor(x/CELL_SIZE)].queryVelocity(x, y)
-    // if(vel[0]==0){
-    //   throw Error("Mistake in querying velocity. Cell returns invalid")
-    // }
-    // else{
-    //   return [vel[1], vel[2]]
-    // }
     
 
   }
@@ -480,33 +465,10 @@ const initCanvas = (): void => {
   ctx = canvas.getContext("2d");
   ctx.scale(devicePixelRatio, devicePixelRatio);
 
-  //   ctx.beginPath();
-  //   ctx.strokeStyle = "red";
-  //   ctx.moveTo(100, 100);
-  //   ctx.lineTo(200, 200);
-  //   ctx.stroke();
 
   console.log("Canvas initialised");
 };
 
-// const displayCells = (cell_size = 3) => {
-//     ctx.clearRect(0, 0, canvas.width, canvas.height);
-//     for (let i = 0; i < HEIGHT; i++) {
-//       for (let j = 0; j < WIDTH; j++) {
-//         let cellToLookAt = cell_array[i][j];
-//         cellToLookAt.calculateDivergence();
-
-//         if (cellToLookAt.isFluid) {
-//           ctx.fillStyle = `rgb(${normalize(cellToLookAt.pressure)}, 0, ${
-//             255 - normalize(cellToLookAt.pressure)
-//           })`;
-//         } else {
-//           ctx.fillStyle = "green";
-//         }
-//         ctx.fillRect(j * cell_size, i * cell_size, cell_size, cell_size);
-//       }
-//     }
-// }
 
 const display = (): void => {
   ctx.clearRect(0, 0, canvas.width, canvas.height);
@@ -559,11 +521,7 @@ const init = (): void => {
   fluid.makeFluidDivergenceFree(100);
   display();
   console.log("Display completed");
-  //   initGrid();
-  //   initWalls();
-  //   initBoundryConditions();
-  //   initFinalPreparations();
-  //   requestAnimationFrame(mainLoop);
+
 };
 
 /*
@@ -588,8 +546,7 @@ const debugValues = (e: any): void => {
     fluid.cellArr[Math.floor(e.layerY / CELL_SIZE)][
       Math.floor(e.layerX / CELL_SIZE)
     ];
-  //   cell.calculateDivergence();
-  //   let vels = cell.getVelocitiesValues();
+
 
   console.log(
     `Coordinates: ${e.layerX / CELL_SIZE}, ${
