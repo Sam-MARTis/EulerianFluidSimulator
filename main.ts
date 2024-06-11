@@ -327,6 +327,56 @@ class Fluid {
       }
     }
   };
+
+  queryVelocityAt = (x: number, y: number): number[]=> {
+    if(x<0){
+      x = 0
+    }
+    if(x>this.countX*CELL_SIZE -1){
+      x = this.countY*CELL_SIZE -1
+    }
+    while(y<= -1){
+      y += this.countY*CELL_SIZE
+    }
+    while(y>=this.countY*CELL_SIZE){
+      y -= this.countY*CELL_SIZE
+    }
+
+    let y_norm = y/CELL_SIZE
+    let x_norm = x/CELL_SIZE
+    let x_switch: number
+    let y_switch: number
+    if(y_norm - Math.floor(y_norm)> 0.5){
+      y_switch = 1
+    }
+    else{
+      y_switch = -1
+    }
+    if(x_norm - Math.floor(x_norm)> 0.5){
+      x_switch = 1
+    }
+    else{
+      x_switch = -1
+    }
+
+    
+
+
+    let mainCellToLookAt = this.cellArr[Math.floor(y/CELL_SIZE)][Math.floor(x/CELL_SIZE)]
+
+    // let vel = this.cellArr[Math.floor(y/CELL_SIZE)][Math.floor(x/CELL_SIZE)].queryVelocity(x, y)
+    // if(vel[0]==0){
+    //   throw Error("Mistake in querying velocity. Cell returns invalid")
+    // }
+    // else{
+    //   return [vel[1], vel[2]]
+    // }
+    
+
+  }
+
+  advectVelocityOfCell = ():void => {
+  }
 }
 
 //End fluid
