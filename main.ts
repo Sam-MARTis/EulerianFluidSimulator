@@ -344,20 +344,87 @@ class Fluid {
 
     let y_norm = y/CELL_SIZE
     let x_norm = x/CELL_SIZE
+    let dx: number
+    let dy: number
     let x_switch: number
     let y_switch: number
-    if(y_norm - Math.floor(y_norm)> 0.5){
+
+    let velXArr: number[] = []
+    let velYArr: number[] = []
+    
+
+    dy = y_norm - Math.floor(y_norm)
+    dx= x_norm - Math.floor(x_norm)
+    let xVelWeights: number[] = [dx, 1-dx, dx, 1-dx]
+    let yVelWeights: number[] = [dy, 1-dy, dy, 1-dy]
+
+    if(dy> 0.5){
       y_switch = 1
+      // dy -= 0.5
+      
     }
     else{
       y_switch = -1
+      // dy= 0.5 - dy
     }
-    if(x_norm - Math.floor(x_norm)> 0.5){
+    if(dx>0.5){
       x_switch = 1
+      // dx -= 0.5
     }
     else{
       x_switch = -1
+      // dx = 0.5-dx
     }
+ 
+    let currentCell = this.cellArr[Math.floor(y_norm)][Math.floor(x_norm)]
+    if(x_norm>=1 && x_norm<=this.countX-2 && y_norm>=1 && y_norm <= this.countY-2){
+      let CellX = this.cellArr[Math.floor(y_norm) + y_switch][Math.floor(x_norm)]
+      let CellY = this.cellArr[Math.floor(y_norm) + y_switch][Math.floor(x_norm)]
+
+      // if(x_switch==1){
+      //   if(y_switch==1){
+      //     velX+= 
+      //   }
+      // }
+
+      if(x_switch==1){
+        if(y_switch==1){
+          // dy -= 0.5
+          xVelWeights = [(1-dx)*(1-(dy-0.5)), (dx)*(1-(dy-0.5)), (1-dx)*((dy-0.5)), (dx)*((dy-0.5))]
+          yVelWeights = [(1-(dx-0.5))*dy, (1-(dx-0.5))*(1-dy), (dx-0.5)*dy, (dx-0.5)*(1-dy)]
+        }
+        else{
+          xVelWeights = [(1-dx)*(1-(0.5-dy)), (dx)*(1-(0.5-dy)), (1-dx)*((0.5-dy)), (dx)*((0.5-dy))]
+          yVelWeights = [(1-(dx-0.5))*(dy), (1-(dx-0.5))*(1-(dy)), (dx-0.5)*(dy), (dx-0.5)*(1-(dy))]
+        }
+      }
+      else{
+        if(y_switch==1){
+          xVelWeights = [(1-dx)*(1-(dy-0.5)), (dx)*(1-(dy-0.5)), (1-dx)*((dy-0.5)), (dx)*((dy-0.5))]
+          yVelWeights = [(1-(0.5-dx))*dy, (1-(0.5-dx))*(1-dy), (0.5-dx)*dy, (0.5-dx)*(1-dy)]
+        }
+        else{
+          xVelWeights = [(1-dx)*(1-(0.5-dy)), (dx)*(1-(0.5-dy)), (1-dx)*((0.5-dy)), (dx)*((0.5-dy))]
+          yVelWeights = [(1-(0.5-dx))*(dy), (1-(0.5-dx))*(1-(dy)), (0.5-dx)*(dy), (0.5-dx)*(1-(dy))]
+        }
+      }
+      velXArr = [currentCell.vl.mag(), currentCell.vr.mag(), CellX.vl.mag(), CellY.vr.mag()]
+      velYArr = [currentCell.vd.mag(), currentCell.vu.mag(), CellY.vd.mag(), CellY.vu.mag()]
+      if(y_switch==1){
+
+      }
+
+
+
+      
+    }
+    
+    
+
+
+
+
+    return [0,0,0]
 
     
 
