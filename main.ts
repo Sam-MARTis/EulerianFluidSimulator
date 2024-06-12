@@ -455,7 +455,14 @@ class Fluid {
     return [vx, vy];
   };
 
-  advectVelocityOfCell = (): void => {};
+  advectVelocityOfCell = (): void => {
+    for(let j=0; j< this.cellArr.length; j++){
+      for(let i=0; i<this.cellArr[0].length; i++){
+        this.cellArr
+      }
+    }
+
+  };
 }
 
 //End fluid
