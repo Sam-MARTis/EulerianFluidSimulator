@@ -454,11 +454,19 @@ class Fluid {
     }
     return [vx, vy];
   };
+  advectVeclocityAt = (x: number, y: number, dt: number): number[] => {
+    let vel = this.queryVelocityAt(x, y)
+    let intermediateVel = this.queryVelocityAt(x - (vel[0]*dt/2), y-(vel[1]*dt/2))
+    return this.queryVelocityAt(x - (intermediateVel[0]*dt), y - (intermediateVel[1]*dt))
+  }
 
   advectVelocityOfCell = (): void => {
+    let currentCell: Cell;
+
     for(let j=0; j< this.cellArr.length; j++){
       for(let i=0; i<this.cellArr[0].length; i++){
-        this.cellArr
+        currentCell = this.cellArr[j][i];
+        
       }
     }
 
