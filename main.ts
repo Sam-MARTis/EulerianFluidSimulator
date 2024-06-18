@@ -29,6 +29,7 @@ let PRESSURE_CONSTANT = 10;
 //Vector
 class VelocityVector {
   magnitude: number;
+  storedMagnitude: number
   immutable: boolean;
   id: number;
 
@@ -36,6 +37,7 @@ class VelocityVector {
     this.magnitude = _magnitude;
     this.immutable = _immutable;
     this.id = Math.floor(Math.random() * 10000);
+    this.storedMagnitude = _magnitude
   }
 
   incrementValue = (_value: number): void => {
@@ -66,6 +68,22 @@ class VelocityVector {
   makeMutable = (): void => {
     this.immutable = false;
   };
+  storeValues = (val: number): void => {
+    if (this.immutable == false) {
+      this.storedMagnitude = val;
+    }
+  }
+  sudoStoreValues = (val: number): void => {
+    this.storedMagnitude = val
+  }
+  applyStoredValue = (): void => {
+    if(this.immutable ==false){
+    this.magnitude = this.storedMagnitude
+    }
+  }
+  sudoApplyStoredValue = (): void => {
+    this.magnitude = this.storedMagnitude
+  }
 }
 //End vector
 
@@ -274,6 +292,12 @@ class Fluid {
       currentCell.vr.sudoAssignValue(BOUNDRY_VEL);
       currentCell.vl.sudoAssignValue(BOUNDRY_VEL);
     }
+    for(let j = 0; j< 30; j++){
+      currentCell = this.cellArr[j][j];
+      currentCell.makeObstacle();
+      currentCell.vr.sudoAssignValue(BOUNDRY_VEL);
+      currentCell.vl.sudoAssignValue(BOUNDRY_VEL);
+    }
   };
   maintainAbsorbentBoundry = (): void => {
     let currentCell: Cell;
@@ -462,13 +486,37 @@ class Fluid {
 
   advectVelocityOfCell = (): void => {
     let currentCell: Cell;
+    let x:number, y: number
+    
 
     for(let j=0; j< this.cellArr.length; j++){
-      for(let i=0; i<this.cellArr[0].length; i++){
+      for(let i=1; i<this.cellArr[0].length; i++){
+        try{
         currentCell = this.cellArr[j][i];
-        
+        x = currentCell.x
+        y = currentCell.y
+        currentCell.vl.storeValues(this.advectVeclocityAt(x, y, TIME_STEP)[0])
+        currentCell.vr.storeValues(this.advectVeclocityAt(x+1, y, TIME_STEP)[0])
+        currentCell.vu.storeValues(this.advectVeclocityAt(x, y-1, TIME_STEP)[0])
+        currentCell.vd.storeValues(this.advectVeclocityAt(x, y+1, TIME_STEP)[0])
+      }
+      catch{
+         console.error("Error at: ", i, ", ", j, "\n")
       }
     }
+    }
+    for(let j=0; j< this.cellArr.length; j++){
+      for(let i=1; i<this.cellArr[0].length; i++){
+        currentCell = this.cellArr[j][i];
+        x = currentCell.x
+        y = currentCell.y
+        currentCell.vl.applyStoredValue()
+        currentCell.vr.applyStoredValue()
+        currentCell.vu.applyStoredValue()
+        currentCell.vd.applyStoredValue()
+      }
+    }
+
 
   };
 }
@@ -545,6 +593,10 @@ const init = (): void => {
   fluid.applyBoundryConditions();
   fluid.makeFluidDivergenceFree(100);
   display();
+  setInterval(()=> {
+    fluid.advectVelocityOfCell()
+    fluid.makeFluidDivergenceFree(20)
+  }, 200)
   console.log("Display completed");
 };
 

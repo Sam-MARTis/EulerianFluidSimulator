@@ -41,9 +41,26 @@ var VelocityVector = /** @class */ (function () {
         this.makeMutable = function () {
             _this.immutable = false;
         };
+        this.storeValues = function (val) {
+            if (_this.immutable == false) {
+                _this.storedMagnitude = val;
+            }
+        };
+        this.sudoStoreValues = function (val) {
+            _this.storedMagnitude = val;
+        };
+        this.applyStoredValue = function () {
+            if (_this.immutable == false) {
+                _this.magnitude = _this.storedMagnitude;
+            }
+        };
+        this.sudoApplyStoredValue = function () {
+            _this.magnitude = _this.storedMagnitude;
+        };
         this.magnitude = _magnitude;
         this.immutable = _immutable;
         this.id = Math.floor(Math.random() * 10000);
+        this.storedMagnitude = _magnitude;
     }
     return VelocityVector;
 }());
@@ -211,6 +228,12 @@ var Fluid = /** @class */ (function () {
                 currentCell.vr.sudoAssignValue(BOUNDRY_VEL);
                 currentCell.vl.sudoAssignValue(BOUNDRY_VEL);
             }
+            for (var j = 0; j < 30; j++) {
+                currentCell = _this.cellArr[j][j];
+                currentCell.makeObstacle();
+                currentCell.vr.sudoAssignValue(BOUNDRY_VEL);
+                currentCell.vl.sudoAssignValue(BOUNDRY_VEL);
+            }
         };
         this.maintainAbsorbentBoundry = function () {
             var currentCell;
@@ -239,11 +262,6 @@ var Fluid = /** @class */ (function () {
                         _this.cellArr[j][i].makeDivergenceFree();
                     }
                 }
-                // for (let j = 0; j < this.cellArr.length; j++) {
-                //   for (let i = 0; i < this.cellArr[j].length; i ++) {
-                //     this.cellArr[j][i].makeDivergenceFree();
-                //   }
-                // }
                 for (var j = 0; j < _this.cellArr.length; j++) {
                     for (var i = (j + 1) % 2; i < _this.cellArr[j].length; i += 2) {
                         _this.cellArr[j][i].makeDivergenceFree();
@@ -258,6 +276,172 @@ var Fluid = /** @class */ (function () {
                     for (var j = 0; j < _this.cellArr.length; j++) {
                         _this.cellArr[j][i].makeDivergenceFree();
                     }
+                }
+            }
+        };
+        this.queryVelocityAt = function (x, y) {
+            if (x < 0) {
+                x = 0;
+            }
+            if (x > _this.countX * CELL_SIZE - 1) {
+                x = _this.countX * CELL_SIZE - 1;
+            }
+            while (y <= -1) {
+                y += _this.countY * CELL_SIZE;
+            }
+            while (y >= _this.countY * CELL_SIZE) {
+                y -= _this.countY * CELL_SIZE;
+            }
+            var y_norm = y / CELL_SIZE;
+            var x_norm = x / CELL_SIZE;
+            var dx;
+            var dy;
+            var x_switch;
+            var y_switch;
+            var velXArr = [];
+            var velYArr = [];
+            dy = y_norm - Math.floor(y_norm);
+            dx = x_norm - Math.floor(x_norm);
+            var xVelWeights = [];
+            var yVelWeights = [];
+            if (dy > 0.5) {
+                y_switch = 1;
+            }
+            else {
+                y_switch = -1;
+            }
+            if (dx > 0.5) {
+                x_switch = 1;
+            }
+            else {
+                x_switch = -1;
+            }
+            var CellX;
+            var CellY;
+            var currentCell = _this.cellArr[Math.floor(y_norm)][Math.floor(x_norm)];
+            if (x_norm >= 1 &&
+                x_norm < _this.countX - 1 &&
+                y_norm >= 1 &&
+                y_norm < _this.countY - 1) {
+                CellX = _this.cellArr[Math.floor(y_norm)][Math.floor(x_norm) + x_switch];
+                CellY = _this.cellArr[Math.floor(y_norm) + y_switch][Math.floor(x_norm)];
+            }
+            else if (x_norm < 1) {
+                if (x_switch == -1) {
+                    return [BOUNDRY_VEL, 0];
+                }
+                else {
+                    CellX = _this.cellArr[Math.floor(y_norm)][Math.floor(x_norm) + x_switch];
+                }
+            }
+            else {
+                if (x_norm > _this.countX - 1) {
+                    if (x_switch == 1) {
+                        CellX = currentCell;
+                    }
+                    else {
+                        CellX =
+                            _this.cellArr[Math.floor(y_norm)][Math.floor(x_norm) + x_switch];
+                    }
+                }
+                else {
+                    CellX = _this.cellArr[Math.floor(y_norm)][Math.floor(x_norm) + x_switch];
+                }
+            }
+            if ((y_norm < 1) && (y_switch == -1)) {
+                CellY = _this.cellArr[_this.cellArr.length - 1][Math.floor(x_norm)];
+            }
+            else if ((y_norm >= (_this.countY - 1)) && (y_switch == 1)) {
+                CellY = _this.cellArr[0][Math.floor(x_norm)];
+            }
+            else {
+                CellY = _this.cellArr[Math.floor(y_norm) + y_switch][Math.floor(x_norm)];
+            }
+            velXArr = [
+                currentCell.vl.mag(),
+                currentCell.vr.mag(),
+                CellX.vl.mag(),
+                CellX.vr.mag(),
+            ];
+            velYArr = [
+                currentCell.vd.mag(),
+                currentCell.vu.mag(),
+                CellY.vd.mag(),
+                CellY.vu.mag(),
+            ];
+            if (x_switch == 1) {
+                yVelWeights = [
+                    (1 - (dx - 0.5)) * dy,
+                    (1 - (dx - 0.5)) * (1 - dy),
+                    (dx - 0.5) * dy,
+                    (dx - 0.5) * (1 - dy),
+                ];
+            }
+            else {
+                yVelWeights = [
+                    (1 - (0.5 - dx)) * dy,
+                    (1 - (0.5 - dx)) * (1 - dy),
+                    (0.5 - dx) * dy,
+                    (0.5 - dx) * (1 - dy),
+                ];
+            }
+            if (y_switch == 1) {
+                xVelWeights = [
+                    (1 - dx) * (1 - (dy - 0.5)),
+                    dx * (1 - (dy - 0.5)),
+                    (1 - dx) * (dy - 0.5),
+                    dx * (dy - 0.5),
+                ];
+            }
+            else {
+                xVelWeights = [
+                    (1 - dx) * (1 - (0.5 - dy)),
+                    dx * (1 - (0.5 - dy)),
+                    (1 - dx) * (0.5 - dy),
+                    dx * (0.5 - dy),
+                ];
+            }
+            var vx = 0;
+            var vy = 0;
+            for (var i = 0; i < 4; i++) {
+                vx += velXArr[i] * xVelWeights[i];
+                vy += velYArr[i] * yVelWeights[i];
+            }
+            return [vx, vy];
+        };
+        this.advectVeclocityAt = function (x, y, dt) {
+            var vel = _this.queryVelocityAt(x, y);
+            var intermediateVel = _this.queryVelocityAt(x - (vel[0] * dt / 2), y - (vel[1] * dt / 2));
+            return _this.queryVelocityAt(x - (intermediateVel[0] * dt), y - (intermediateVel[1] * dt));
+        };
+        this.advectVelocityOfCell = function () {
+            var currentCell;
+            var x, y;
+            for (var j = 0; j < _this.cellArr.length; j++) {
+                for (var i = 1; i < _this.cellArr[0].length; i++) {
+                    try {
+                        currentCell = _this.cellArr[j][i];
+                        x = currentCell.x;
+                        y = currentCell.y;
+                        currentCell.vl.storeValues(_this.advectVeclocityAt(x, y, TIME_STEP)[0]);
+                        currentCell.vr.storeValues(_this.advectVeclocityAt(x + 1, y, TIME_STEP)[0]);
+                        currentCell.vu.storeValues(_this.advectVeclocityAt(x, y - 1, TIME_STEP)[0]);
+                        currentCell.vd.storeValues(_this.advectVeclocityAt(x, y + 1, TIME_STEP)[0]);
+                    }
+                    catch (_a) {
+                        console.error("Error at: ", i, ", ", j, "\n");
+                    }
+                }
+            }
+            for (var j = 0; j < _this.cellArr.length; j++) {
+                for (var i = 1; i < _this.cellArr[0].length; i++) {
+                    currentCell = _this.cellArr[j][i];
+                    x = currentCell.x;
+                    y = currentCell.y;
+                    currentCell.vl.applyStoredValue();
+                    currentCell.vr.applyStoredValue();
+                    currentCell.vu.applyStoredValue();
+                    currentCell.vd.applyStoredValue();
                 }
             }
         };
@@ -281,30 +465,8 @@ var initCanvas = function () {
     canvas.height = window.innerHeight * devicePixelRatio;
     ctx = canvas.getContext("2d");
     ctx.scale(devicePixelRatio, devicePixelRatio);
-    //   ctx.beginPath();
-    //   ctx.strokeStyle = "red";
-    //   ctx.moveTo(100, 100);
-    //   ctx.lineTo(200, 200);
-    //   ctx.stroke();
     console.log("Canvas initialised");
 };
-// const displayCells = (cell_size = 3) => {
-//     ctx.clearRect(0, 0, canvas.width, canvas.height);
-//     for (let i = 0; i < HEIGHT; i++) {
-//       for (let j = 0; j < WIDTH; j++) {
-//         let cellToLookAt = cell_array[i][j];
-//         cellToLookAt.calculateDivergence();
-//         if (cellToLookAt.isFluid) {
-//           ctx.fillStyle = `rgb(${normalize(cellToLookAt.pressure)}, 0, ${
-//             255 - normalize(cellToLookAt.pressure)
-//           })`;
-//         } else {
-//           ctx.fillStyle = "green";
-//         }
-//         ctx.fillRect(j * cell_size, i * cell_size, cell_size, cell_size);
-//       }
-//     }
-// }
 var display = function () {
     ctx.clearRect(0, 0, canvas.width, canvas.height);
     var cell;
@@ -349,12 +511,11 @@ var init = function () {
     fluid.applyBoundryConditions();
     fluid.makeFluidDivergenceFree(100);
     display();
+    setInterval(function () {
+        fluid.advectVelocityOfCell();
+        fluid.makeFluidDivergenceFree(20);
+    }, 200);
     console.log("Display completed");
-    //   initGrid();
-    //   initWalls();
-    //   initBoundryConditions();
-    //   initFinalPreparations();
-    //   requestAnimationFrame(mainLoop);
 };
 /*
 //
@@ -374,8 +535,6 @@ var init = function () {
 */
 var debugValues = function (e) {
     var cell = fluid.cellArr[Math.floor(e.layerY / CELL_SIZE)][Math.floor(e.layerX / CELL_SIZE)];
-    //   cell.calculateDivergence();
-    //   let vels = cell.getVelocitiesValues();
     console.log("Coordinates: ".concat(e.layerX / CELL_SIZE, ", ").concat(e.layerY / CELL_SIZE, "\nIsWall: ").concat(!cell.isFluid, "\nPressure of cell is: ").concat(cell.pressure, "\n    \n Velocities:\n    \nvl: ").concat(cell.vl.mag(), ", ").concat(cell.vl.isImmutable(), ", ").concat(cell.vl.id, "\n    \nvu: ").concat(cell.vu.mag(), ", ").concat(cell.vu.isImmutable(), ", ").concat(cell.vu.id, "\n    \nvr: ").concat(cell.vr.mag(), ", ").concat(cell.vr.isImmutable(), ", ").concat(cell.vr.id, "\n    \nvd: ").concat(cell.vd.mag(), ", ").concat(cell.vd.isImmutable(), ", ").concat(cell.vd.id));
 };
 var button = document.getElementById("divergenceStep");
