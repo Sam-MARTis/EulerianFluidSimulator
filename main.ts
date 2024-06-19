@@ -502,6 +502,7 @@ class Fluid {
       }
       catch{
          console.error("Error at: ", i, ", ", j, "\n")
+
       }
     }
     }

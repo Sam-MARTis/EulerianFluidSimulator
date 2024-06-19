@@ -417,7 +417,7 @@ var Fluid = /** @class */ (function () {
         this.advectVelocityOfCell = function () {
             var currentCell;
             var x, y;
-            for (var j = 0; j < _this.cellArr.length; j++) {
+            for (var j = 3; j < _this.cellArr.length - 3; j++) {
                 for (var i = 1; i < _this.cellArr[0].length; i++) {
                     try {
                         currentCell = _this.cellArr[j][i];
@@ -433,7 +433,7 @@ var Fluid = /** @class */ (function () {
                     }
                 }
             }
-            for (var j = 0; j < _this.cellArr.length; j++) {
+            for (var j = 3; j < _this.cellArr.length - 3; j++) {
                 for (var i = 1; i < _this.cellArr[0].length; i++) {
                     currentCell = _this.cellArr[j][i];
                     x = currentCell.x;
