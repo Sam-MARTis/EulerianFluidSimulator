@@ -9,14 +9,24 @@ const OVER_RELAXATION = 1.4;
 class Vector {
     constructor(x, y) {
         this.isMutable = false;
+        this.update = (x, y, override = false) => {
+            if (this.isMutable || override) {
+                this.x = x;
+                this.y = y;
+            }
+        };
+        this.cache = (x, y) => {
+            this.x_stored = x;
+            this.y_stored = y;
+        };
+        this.applyCache = () => {
+            this.x = this.x_stored;
+            this.y = this.y_stored;
+        };
         this.x = x;
         this.y = y;
-    }
-    update(x, y, override = false) {
-        if (this.isMutable || override) {
-            this.x = x;
-            this.y = y;
-        }
+        this.x_stored = x;
+        this.y_stored = y;
     }
 }
 class Cell {
@@ -41,5 +51,27 @@ class Cell {
         this.vr = vr;
         this.vd = vd;
         this.vectors = [vl, vu, vr, vd];
+    }
+}
+class Fluid {
+    constructor(x_dim, y_dim, cellSize) {
+        this.cells = [];
+        this.createCells = () => {
+            for (let i = 0; i < this.cellCount.x; i++) {
+                this.cells.push([]);
+                for (let j = 0; j < this.cellCount.y; j++) {
+                    const pos = new Vector(i * this.cellSize, j * this.cellSize);
+                    const vl = new Vector(0, 0);
+                    const vu = new Vector(0, 0);
+                    const vr = new Vector(0, 0);
+                    const vd = new Vector(0, 0);
+                    this.cells[i].push(new Cell(pos, this.cellSize, false, vl, vu, vr, vd));
+                }
+            }
+        };
+        this.dimensions = new Vector(x_dim, y_dim);
+        this.cellSize = cellSize;
+        this.cellCount = new Vector(Math.floor(x_dim / cellSize), Math.floor(y_dim / cellSize));
+        this.createCells();
     }
 }
