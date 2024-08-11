@@ -6,6 +6,7 @@ const ctx = canvas.getContext("2d")
 
 //Constants
 const OVER_RELAXATION = 1.4;
+const LEFT_BOUNDARY_Vel = 1;
 
 
 //End constants
@@ -96,6 +97,7 @@ class Cell{
 
 
 
+
     //     return new Vector(0, 0)
     // }
 
@@ -127,8 +129,71 @@ class Fluid{
             }
         }
     }
+    findVelocityAtPoint = (point: Vector): Vector =>{
+        const x = Math.floor(point.x/this.cellSize);
+        const y = Math.floor(point.y/this.cellSize);
 
+        if(x<0){
+            return new Vector(LEFT_BOUNDARY_Vel, 0);
+        }
+        if(x>=this.cellCount.x || y<0 || y>=this.cellCount.y){
+            return new Vector(0, 0);
+        }
+        const cell = this.cells[y][x];
+        const dx = (point.x - cell.pos.x)/cell.size;
+        const dy = (point.y - cell.pos.y)/cell.size;
+        if(dx<0.5){
+            if(dy<0.5){
+                let leftUVel: Vector|undefined;
+                let leftDVel: Vector|undefined;
+                let upLVel: Vector|undefined;
+                let upRVel: Vector|undefined;
+                
+                if(x==0){
+                    leftUVel = new Vector(0, 0);
+                    leftDVel = new Vector(0, 0);
+                    // upLVel = new Vector(LEFT_BOUNDARY_Vel, 0);
+                    
+                }else{
+                    leftUVel = this.cells[y][x-1].vu;
+                    leftDVel = this.cells[y][x-1].vd;
+                    // upLVel = this.cells[y-1][x].vl;
+                }
+                if(y==0){
+                    upLVel = new Vector(0, 0);
+                    upRVel = new Vector(0, 0);
+                }
+                else{
+                    upLVel = this.cells[y-1][x].vl;
+                    upRVel = this.cells[y-1][x].vr;
+                }
+                if(!leftUVel || !leftDVel || !upLVel || !upRVel){
+                    throw new Error("Undefined velocity. Find velocity at point failed. You got this, champ");
+                }
+                const xVel: number|undefined = (cell.vl.x*(0.5+dx) + upLVel.x*(0.5-dx))*(1-dy)+ (cell.vr.x*(0.5+dx) + upRVel.x*(0.5-dx))*dy;
+                const yVel: number|undefined = ((leftUVel.y*(1-dx) + leftDVel.y*(dx))*(0.5-dy) + (cell.vu.y*(1-dx) + cell.vd.y*(dx))*(0.5+dy)     )
+                if(!xVel || !yVel){
+                    if(!xVel){
+                        throw new Error("Undefined xVel. Find velocity at point failed. You got this, champ");
+                    }
+                    if(!yVel){
+                        throw new Error("Undefined yVel. Find velocity at point failed. You got this, champ");
+                    }
+                }
+                return new Vector(xVel, yVel);
+                
 
-    
-
+                // return cell.vl;
+            }else{
+                return cell.vd;
+            }
+        }
+        else{
+            if(dy<0.5){
+                return cell.vu;
+            }else{
+                return cell.vr;
+            }
+        }
+    }
 }
