@@ -142,6 +142,9 @@ class Fluid{
         const cell = this.cells[y][x];
         const dx = (point.x - cell.pos.x)/cell.size;
         const dy = (point.y - cell.pos.y)/cell.size;
+        if(dx<0 || dx>1 || dy<0 || dy>1){
+            throw new Error("Invalid point. Not inside cell boundary. Find velocity at point failed. No worries, easy fix");
+        }
         if(dx<0.5){
             if(dy<0.5){
                 let leftUVel: Vector|undefined;
@@ -244,7 +247,52 @@ class Fluid{
         }
         else{
             if(dy<0.5){
-                return cell.vu;
+                let rightUVel: Vector|undefined;
+                let rightDVel: Vector|undefined;
+                let upLVel: Vector|undefined;
+                let upRVel: Vector|undefined;
+                
+                if(x==(this.cellCount.x-1)){
+                    rightUVel = this.cells[y][x].vu;
+                    rightDVel = this.cells[y][x].vd;
+                    // upLVel = new Vector(LEFT_BOUNDARY_Vel, 0);
+                    
+                }else{
+                    rightUVel = this.cells[y][x+1].vu;
+                    rightDVel = this.cells[y][x+1].vd;
+                    // upLVel = this.cells[y-1][x].vl;
+                }
+                if(y==0){
+                    upLVel = new Vector(0, 0);
+                    upRVel = new Vector(0, 0);
+                }
+                else{
+                    upLVel = this.cells[y-1][x].vl;
+                    upRVel = this.cells[y-1][x].vr;
+                }
+                if(!rightUVel || !rightDVel || !upLVel || !upRVel){
+                    throw new Error("Undefined found velocity in condition 3. Find velocity at point failed. You got this, champ");
+                }
+                const xVelLeftYInterpolated = upLVel.x*(0.5-dy) + cell.vl.x*(0.5+dy);
+                const xVelRightYInterpolated = upRVel.x*(0.5-dy) + cell.vr.x*(0.5+dy);
+                const xVel = (xVelLeftYInterpolated*(1-dx) + xVelRightYInterpolated*dx);
+
+                const yVelUpXInterpolated = rightUVel.y*(dx-0.5) + cell.vu.y*(1-(dx-0.5));
+                const yVelDownXInterpolated = rightDVel.y*(dx-0.5) + cell.vd.y*(1-(dx-0.5));
+                const yVel = (yVelUpXInterpolated*(1-dy) + yVelDownXInterpolated*dy);
+
+
+
+                // const yVel: number|undefined = ((leftUVel.y*(1-dx) + leftDVel.y*(dx))*(0.5-dy) + (cell.vu.y*(1-dx) + cell.vd.y*(dx))*(0.5+dy)     )
+                if(!xVel || !yVel){
+                    if(!xVel){
+                        throw new Error("Undefined xVel in condition 3. Find velocity at point failed. You got this, champ");
+                    }
+                    if(!yVel){
+                        throw new Error("Undefined yVel in condition 3. Find velocity at point failed. You got this, champ");
+                    }
+                }
+                return new Vector(xVel, yVel);
             }else{
                 return cell.vr;
             }
