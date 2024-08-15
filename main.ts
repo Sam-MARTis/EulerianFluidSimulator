@@ -6,11 +6,11 @@ const ctx = canvas.getContext("2d")
 
 //Constants
 const OVER_RELAXATION = 1.4;
-const LEFT_BOUNDARY_Vel = 1;
+const LEFT_BOUNDARY_Vel = 2;
 
 
 //End constants
-
+console.clear();
 
 
 
@@ -120,7 +120,7 @@ class Fluid{
         for(let i = 0; i<this.cellCount.x; i++){
             this.cells.push([]);
             for(let j = 0; j<this.cellCount.y; j++){
-                const pos = new Vector(i*this.cellSize, j*this.cellSize);
+                const pos = new Vector(j*this.cellSize, i*this.cellSize);
                 const vl = new Vector(0, 0);
                 const vu = new Vector(0, 0);
                 const vr = new Vector(0, 0);
@@ -128,21 +128,33 @@ class Fluid{
                 this.cells[i].push(new Cell(pos, this.cellSize, false, vl, vu, vr, vd));
             }
         }
+        for(let i = 0; i<this.cellCount.y; i++){
+            this.cells[i][0].vl = new Vector(LEFT_BOUNDARY_Vel, 0);
+        }
     }
     findVelocityAtPoint = (point: Vector): Vector =>{
         const x = Math.floor(point.x/this.cellSize);
         const y = Math.floor(point.y/this.cellSize);
+        // console.log("X: ", x, "Y: ", y);
 
         if(x<0){
+            console.warn("Returning left boundary vel")
             return new Vector(LEFT_BOUNDARY_Vel, 0);
         }
         if(x>=this.cellCount.x || y<0 || y>=this.cellCount.y){
+            console.warn("Returning out of vertical boundry vel")
             return new Vector(0, 0);
         }
         const cell = this.cells[y][x];
+        // console.log('Cell chosen has X: ', cell.pos.x, " and Y: ", cell.pos.y)
+        // console.log("Point x: ", point.x, " , Y: ", point.y)
+
+        // console.log(cell.pos.x)
         const dx = (point.x - cell.pos.x)/cell.size;
         const dy = (point.y - cell.pos.y)/cell.size;
+
         if(dx<0 || dx>1 || dy<0 || dy>1){
+            // console.table([dx, dy]);
             throw new Error("Invalid point. Not inside cell boundary. Find velocity at point failed. No worries, easy fix");
         }
         if(dx<0.5){
@@ -170,9 +182,10 @@ class Fluid{
                     upLVel = this.cells[y-1][x].vl;
                     upRVel = this.cells[y-1][x].vr;
                 }
-                if(!leftUVel || !leftDVel || !upLVel || !upRVel){
+                if(leftUVel===undefined || leftDVel===undefined || upLVel===undefined || upRVel===undefined){
                     throw new Error("Undefined founf velocity in condition 1. Find velocity at point failed. You got this, champ");
                 }
+                // console.table([leftUVel, leftDVel, upLVel, upRVel, cell.vl, cell.vr, cell.vu, cell.vd]);
                 const xVelLeftYInterpolated = upLVel.x*(0.5-dy) + cell.vl.x*(0.5+dy);
                 const xVelRightYInterpolated = upRVel.x*(0.5-dy) + cell.vr.x*(0.5+dy);
                 const xVel = (xVelLeftYInterpolated*(1-dx) + xVelRightYInterpolated*dx);
@@ -180,15 +193,18 @@ class Fluid{
                 const yVelUpXInterpolated = leftUVel.y*(0.5-dx) + cell.vu.y*(0.5+dx);
                 const yVelDownXInterpolated = leftDVel.y*(0.5-dx) + cell.vd.y*(0.5+dx);
                 const yVel = (yVelUpXInterpolated*(1-dy) + yVelDownXInterpolated*dy);
+                // console.table([xVelLeftYInterpolated, xVelRightYInterpolated]);
+                // console.table([yVelUpXInterpolated, yVelDownXInterpolated]);
+                // console.table([xVel, yVel]);
 
 
 
                 // const yVel: number|undefined = ((leftUVel.y*(1-dx) + leftDVel.y*(dx))*(0.5-dy) + (cell.vu.y*(1-dx) + cell.vd.y*(dx))*(0.5+dy)     )
-                if(!xVel || !yVel){
-                    if(!xVel){
+                if(xVel===undefined || yVel===undefined){
+                    if(xVel===undefined){
                         throw new Error("Undefined xVel in condition 1. Find velocity at point failed. You got this, champ");
                     }
-                    if(!yVel){
+                    if(yVel===undefined){
                         throw new Error("Undefined yVel in condition 1. Find velocity at point failed. You got this, champ");
                     }
                 }
@@ -220,7 +236,7 @@ class Fluid{
                     downLVel = this.cells[y+1][x].vl;
                     downRVel = this.cells[y+1][x].vr;
                 }
-                if(!leftUVel || !leftDVel || !downLVel || !downRVel){
+                if(leftUVel===undefined || leftDVel===undefined || downLVel===undefined|| downRVel===undefined){
                     throw new Error("Undefined found velocity in condition 2. Find velocity at point failed. You got this, champ");
                 }
                 const xVelLeftYInterpolated = downLVel.x*(dy-0.5) + cell.vl.x*(1- (dy-0.5));
@@ -234,7 +250,7 @@ class Fluid{
 
 
                 // const yVel: number|undefined = ((leftUVel.y*(1-dx) + leftDVel.y*(dx))*(0.5-dy) + (cell.vu.y*(1-dx) + cell.vd.y*(dx))*(0.5+dy)     )
-                if(!xVel || !yVel){
+                if(xVel===undefined || yVel===undefined){
                     if(!xVel){
                         throw new Error("Undefined xVel in condition 2. Find velocity at point failed. You got this, champ");
                     }
@@ -270,7 +286,7 @@ class Fluid{
                     upLVel = this.cells[y-1][x].vl;
                     upRVel = this.cells[y-1][x].vr;
                 }
-                if(!rightUVel || !rightDVel || !upLVel || !upRVel){
+                if(rightUVel===undefined || rightDVel===undefined || upLVel===undefined || upRVel===undefined){
                     throw new Error("Undefined found velocity in condition 3. Find velocity at point failed. You got this, champ");
                 }
                 const xVelLeftYInterpolated = upLVel.x*(0.5-dy) + cell.vl.x*(0.5+dy);
@@ -284,22 +300,23 @@ class Fluid{
 
 
                 // const yVel: number|undefined = ((leftUVel.y*(1-dx) + leftDVel.y*(dx))*(0.5-dy) + (cell.vu.y*(1-dx) + cell.vd.y*(dx))*(0.5+dy)     )
-                if(!xVel || !yVel){
+                if(xVel===undefined || yVel===undefined){
                     if(!xVel){
                         throw new Error("Undefined xVel in condition 3. Find velocity at point failed. You got this, champ");
                     }
-                    if(!yVel){
+                    if(yVel===undefined){
                         throw new Error("Undefined yVel in condition 3. Find velocity at point failed. You got this, champ");
                     }
                 }
                 return new Vector(xVel, yVel);
             }else{
+                console.log("Corner")
                 let rightUVel: Vector|undefined;
                 let rightDVel: Vector|undefined;
                 let downLVel: Vector|undefined;
                 let downRVel: Vector|undefined;
                 
-                if(x==(this.cellCount.x-1)){
+                if(x>=(this.cellCount.x-1)){
                     rightUVel = this.cells[y][x].vu;
                     rightDVel = this.cells[y][x].vd;
                     // upLVel = new Vector(LEFT_BOUNDARY_Vel, 0);
@@ -309,17 +326,22 @@ class Fluid{
                     rightDVel = this.cells[y][x+1].vd;
                     // upLVel = this.cells[y-1][x].vl;
                 }
+
+                console.log("Point 1")
                 if(y==(this.cellCount.y -1)){
+                    // console.log("Y found")
                     downLVel = new Vector(0, 0);
                     downRVel = new Vector(0, 0);
                 }
                 else{
-                    downLVel = this.cells[y-1][x].vl;
-                    downRVel = this.cells[y-1][x].vr;
+                    // console.log('Y not found')
+                    downLVel = this.cells[y+1][x].vl;
+                    downRVel = this.cells[y+1][x].vr;
                 }
-                if(!rightUVel || !rightDVel || !downLVel || !downRVel){
+                if(rightUVel===undefined || rightDVel===undefined || downLVel===undefined || downRVel===undefined){
                     throw new Error("Undefined found velocity in condition 4. Find velocity at point failed. You got this, champ");
                 }
+                console.log("Point 2")
                 const xVelLeftYInterpolated = downLVel.x*(0.5-dy) + cell.vl.x*(1-(0.5-dy));
                 const xVelRightYInterpolated = downRVel.x*(0.5-dy) + cell.vr.x*(1-(0.5-dy));
                 const xVel = (xVelLeftYInterpolated*(1-dx) + xVelRightYInterpolated*dx);
@@ -331,7 +353,7 @@ class Fluid{
 
 
                 // const yVel: number|undefined = ((leftUVel.y*(1-dx) + leftDVel.y*(dx))*(0.5-dy) + (cell.vu.y*(1-dx) + cell.vd.y*(dx))*(0.5+dy)     )
-                if(!xVel || !yVel){
+                if(xVel===undefined || yVel===undefined){
                     if(!xVel){
                         throw new Error("Undefined xVel in condition 4. Find velocity at point failed. You got this, champ");
                     }
@@ -339,8 +361,13 @@ class Fluid{
                         throw new Error("Undefined yVel in condition 4. Find velocity at point failed. You got this, champ");
                     }
                 }
+                console.log(xVel, yVel)
                 return new Vector(xVel, yVel);
             }
         }
     }
 }
+
+let myFluid:Fluid = new Fluid(3, 3, 1);
+
+console.log(myFluid.findVelocityAtPoint(new Vector(2.9, 0.1)).x);
