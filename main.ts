@@ -68,7 +68,7 @@ class Cell{
         this.vu = vu;
         this.vr = vr;
         this.vd = vd;
-        this.vectors = [vl, vu, vr, vd];
+        this.vectors = [this.vl, this.vu, this.vr, this.vd];
     }
 
     findDivergence = (): number =>{
@@ -146,11 +146,11 @@ class Fluid{
         // console.log("X: ", x, "Y: ", y);
 
         if(x<0){
-            console.warn("Returning left boundary vel")
+            // console.warn("Returning left boundary vel")
             return new Vector(LEFT_BOUNDARY_Vel, 0);
         }
         if(x>=this.cellCount.x || y<0 || y>=this.cellCount.y){
-            console.warn("Returning out of vertical boundry vel")
+            // console.warn("Returning out of vertical boundry vel")
             return new Vector(0, 0);
         }
         const cell = this.cells[y][x];
@@ -183,7 +183,14 @@ class Fluid{
                     // upLVel = this.cells[y-1][x].vl;
                 }
                 if(y==0){
-                    upLVel = new Vector(0, 0);
+                    if(x==0){
+                        upLVel = new Vector(LEFT_BOUNDARY_Vel, 0);
+                    }
+                    else{
+
+                        upLVel = new Vector(0, 0);
+                    }
+                    // upLVel = new Vector(0, 0);
                     upRVel = new Vector(0, 0);
                 }
                 else{
@@ -237,7 +244,14 @@ class Fluid{
                     // upLVel = this.cells[y-1][x].vl;
                 }
                 if(y==(this.cellCount.y-1)){
-                    downLVel = new Vector(0, 0);
+                    if(x==0){
+                        downLVel = new Vector(LEFT_BOUNDARY_Vel, 0);
+                    }
+                    else{
+
+                        downLVel = new Vector(0, 0);
+                    }
+                    // downLVel = new Vector(0, 0);
                     downRVel = new Vector(0, 0);
                 }
                 else{
@@ -287,6 +301,7 @@ class Fluid{
                     // upLVel = this.cells[y-1][x].vl;
                 }
                 if(y==0){
+                    
                     upLVel = new Vector(0, 0);
                     upRVel = new Vector(0, 0);
                 }
@@ -318,7 +333,7 @@ class Fluid{
                 }
                 return new Vector(xVel, yVel);
             }else{
-                console.log("Corner")
+                // console.log("Corner")
                 let rightUVel: Vector|undefined;
                 let rightDVel: Vector|undefined;
                 let downLVel: Vector|undefined;
@@ -335,7 +350,7 @@ class Fluid{
                     // upLVel = this.cells[y-1][x].vl;
                 }
 
-                console.log("Point 1")
+                // console.log("Point 1")
                 if(y==(this.cellCount.y -1)){
                     // console.log("Y found")
                     downLVel = new Vector(0, 0);
@@ -349,7 +364,7 @@ class Fluid{
                 if(rightUVel===undefined || rightDVel===undefined || downLVel===undefined || downRVel===undefined){
                     throw new Error("Undefined found velocity in condition 4. Find velocity at point failed. You got this, champ");
                 }
-                console.log("Point 2")
+                // console.log("Point 2")
                 const xVelLeftYInterpolated = downLVel.x*(0.5-dy) + cell.vl.x*(1-(0.5-dy));
                 const xVelRightYInterpolated = downRVel.x*(0.5-dy) + cell.vr.x*(1-(0.5-dy));
                 const xVel = (xVelLeftYInterpolated*(1-dx) + xVelRightYInterpolated*dx);
@@ -369,7 +384,7 @@ class Fluid{
                         throw new Error("Undefined yVel in condition 4. Find velocity at point failed. You got this, champ");
                     }
                 }
-                console.log(xVel, yVel)
+                // console.log(xVel, yVel)
                 return new Vector(xVel, yVel);
             }
         }
@@ -378,13 +393,28 @@ class Fluid{
 
 
     advectCellVelocities = (cell: Cell, dt: number): void => {
-        const fullVL1 = this.findVelocityAtPoint(new Vector(cell.pos.x, cell.pos.y + cell.size/2));
-        const fullVU1 = this.findVelocityAtPoint(new Vector(cell.pos.x + cell.size/2, cell.pos.y));
-        const fullVR1 = this.findVelocityAtPoint(new Vector(cell.pos.x + cell.size, cell.pos.y + cell.size/2));
-        const fullVD1 = this.findVelocityAtPoint(new Vector(cell.pos.x + cell.size/2, cell.pos.y + cell.size));
 
+        const l1x = cell.pos.x;
+        const l1y = cell.pos.y + cell.size/2; 
+        const u1x = cell.pos.x + cell.size/2;
+        const u1y = cell.pos.y;
+        const r1x = cell.pos.x + cell.size;
+        const r1y = cell.pos.y + cell.size/2;
+        const d1x = cell.pos.x + cell.size/2;
+        const d1y = cell.pos.y + cell.size;
+
+        const fullVL1 = this.findVelocityAtPoint(new Vector(l1x, l1y));
+        const fullVU1 = this.findVelocityAtPoint(new Vector(u1x, u1y));
+        const fullVR1 = this.findVelocityAtPoint(new Vector(r1x, r1y));
+        const fullVD1 = this.findVelocityAtPoint(new Vector(d1x, d1y));
 
         
+        // const fullVL1 = this.findVelocityAtPoint(new Vector(cell.pos.x, cell.pos.y + cell.size/2));
+        // const fullVU1 = this.findVelocityAtPoint(new Vector(cell.pos.x + cell.size/2, cell.pos.y));
+        // const fullVR1 = this.findVelocityAtPoint(new Vector(cell.pos.x + cell.size, cell.pos.y + cell.size/2));
+        // const fullVD1 = this.findVelocityAtPoint(new Vector(cell.pos.x + cell.size/2, cell.pos.y + cell.size));
+        // console.log("Full velocities: ", fullVL1, fullVU1, fullVR1, fullVD1);
+
         const VLdx1 = -fullVL1.x*dt/2;
         const VLdy1 = -fullVL1.y*dt/2;
         const VUdx1 = -fullVU1.x*dt/2;
@@ -394,26 +424,64 @@ class Fluid{
         const VDdx1 = -fullVD1.x*dt/2;
         const VDdy1 = -fullVD1.y*dt/2;
 
-        const fullVL2 = this.findVelocityAtPoint(new Vector(cell.pos.x + VLdx1, cell.pos.y + VLdy1 + cell.size/2));
-        const fullVU2 = this.findVelocityAtPoint(new Vector(cell.pos.x + VUdx1 + cell.size/2, cell.pos.y + VUdy1));
-        const fullVR2 = this.findVelocityAtPoint(new Vector(cell.pos.x + VRdx1 + cell.size, cell.pos.y + VRdy1 + cell.size/2));
-        const fullVD2 = this.findVelocityAtPoint(new Vector(cell.pos.x + VDdx1 + cell.size/2, cell.pos.y + VDdy1 + cell.size));
+        const l2x = l1x + VLdx1;
+        const l2y = l1y + VLdy1;
+        const u2x = u1x + VUdx1;
+        const u2y = u1y + VUdy1;
+        const r2x = r1x + VRdx1;
+        const r2y = r1y + VRdy1;
+        const d2x = d1x + VDdx1;
+        const d2y = d1y + VDdy1;
+
+        console.table([[l2x, l2y], [u2x, u2y], [r2x, r2y], [d2x, d2y]]);
+
+        console.log("Deltas: ", VLdx1, VLdy1, VUdx1, VUdy1, VRdx1, VRdy1, VDdx1, VDdy1);
+        console.log('velocity found: ', this.findVelocityAtPoint(new Vector(l2x, l2y)));
+        cell.vl.cacheVec(this.findVelocityAtPoint(new Vector(l2x, l2y)));
+        cell.vu.cacheVec(this.findVelocityAtPoint(new Vector(u2x, u2y)));
+        cell.vr.cacheVec(this.findVelocityAtPoint(new Vector(r2x, r2y)));
+        cell.vd.cacheVec(this.findVelocityAtPoint(new Vector(d2x, d2y)));
+
+        
 
 
-        const VLdx2 = -fullVL2.x*dt;
-        const VLdy2 = -fullVL2.y*dt;
-        const VUdx2 = -fullVU2.x*dt;
-        const VUdy2 = -fullVU2.y*dt;
-        const VRdx2 = -fullVR2.x*dt;
-        const VRdy2 = -fullVR2.y*dt;
-        const VDdx2 = -fullVD2.x*dt;
-        const VDdy2 = -fullVD2.y*dt;
+        // cell.vl.cacheVec(this.findVelocityAtPoint(new Vector(cell.pos.x + fullVL1.x*dt, cell.pos.y + fullVL1.y*dt+ cell.size/2)));
+        // cell.vu.cacheVec(this.findVelocityAtPoint(new Vector(cell.pos.x + fullVU1.x*dt + cell.size/2, cell.pos.y + fullVU1.y*dt)));
+        // cell.vr.cacheVec(this.findVelocityAtPoint(new Vector(cell.pos.x + fullVR1.x*dt + cell.size, cell.pos.y + fullVR1.y*dt + cell.size/2)));
+        // cell.vd.cacheVec(this.findVelocityAtPoint(new Vector(cell.pos.x + fullVD1.x*dt + cell.size/2, cell.pos.y + fullVD1.y*dt + cell.size)));
 
 
-        cell.vl.cacheVec(this.findVelocityAtPoint(new Vector(cell.pos.x + VLdx2, cell.pos.y + VLdy2 + cell.size/2)));
-        cell.vu.cacheVec(this.findVelocityAtPoint(new Vector(cell.pos.x + VUdx2 + cell.size/2, cell.pos.y + VUdy2)));
-        cell.vr.cacheVec(this.findVelocityAtPoint(new Vector(cell.pos.x + VRdx2 + cell.size, cell.pos.y + VRdy2 + cell.size/2)));
-        cell.vd.cacheVec(this.findVelocityAtPoint(new Vector(cell.pos.x + VDdx2 + cell.size/2, cell.pos.y + VDdy2 + cell.size)));
+
+
+        // const VLdx1 = -fullVL1.x*dt/2;
+        // const VLdy1 = -fullVL1.y*dt/2;
+        // const VUdx1 = -fullVU1.x*dt/2;
+        // const VUdy1 = -fullVU1.y*dt/2;
+        // const VRdx1 = -fullVR1.x*dt/2;
+        // const VRdy1 = -fullVR1.y*dt/2;
+        // const VDdx1 = -fullVD1.x*dt/2;
+        // const VDdy1 = -fullVD1.y*dt/2;
+
+        // const fullVL2 = this.findVelocityAtPoint(new Vector(cell.pos.x + VLdx1, cell.pos.y + VLdy1 + cell.size/2));
+        // const fullVU2 = this.findVelocityAtPoint(new Vector(cell.pos.x + VUdx1 + cell.size/2, cell.pos.y + VUdy1));
+        // const fullVR2 = this.findVelocityAtPoint(new Vector(cell.pos.x + VRdx1 + cell.size, cell.pos.y + VRdy1 + cell.size/2));
+        // const fullVD2 = this.findVelocityAtPoint(new Vector(cell.pos.x + VDdx1 + cell.size/2, cell.pos.y + VDdy1 + cell.size));
+
+
+        // const VLdx2 = -fullVL2.x*dt;
+        // const VLdy2 = -fullVL2.y*dt;
+        // const VUdx2 = -fullVU2.x*dt;
+        // const VUdy2 = -fullVU2.y*dt;
+        // const VRdx2 = -fullVR2.x*dt;
+        // const VRdy2 = -fullVR2.y*dt;
+        // const VDdx2 = -fullVD2.x*dt;
+        // const VDdy2 = -fullVD2.y*dt;
+
+
+        // cell.vl.cacheVec(this.findVelocityAtPoint(new Vector(cell.pos.x + VLdx2, cell.pos.y + VLdy2 + cell.size/2)));
+        // cell.vu.cacheVec(this.findVelocityAtPoint(new Vector(cell.pos.x + VUdx2 + cell.size/2, cell.pos.y + VUdy2)));
+        // cell.vr.cacheVec(this.findVelocityAtPoint(new Vector(cell.pos.x + VRdx2 + cell.size, cell.pos.y + VRdy2 + cell.size/2)));
+        // cell.vd.cacheVec(this.findVelocityAtPoint(new Vector(cell.pos.x + VDdx2 + cell.size/2, cell.pos.y + VDdy2 + cell.size)));
     }
 
     advectVelocities = (dt: number): void =>{
@@ -432,6 +500,7 @@ class Fluid{
                 cell.vu.applyCache();
                 cell.vr.applyCache();
                 cell.vd.applyCache();
+                cell.vectors = [cell.vl, cell.vu, cell.vr, cell.vd];
             }
         }
     }
@@ -447,6 +516,17 @@ class Fluid{
 
 
 let myFluid:Fluid = new Fluid(3, 3, 1);
+const xVal = 0.2
+const yVal = 0.7
+myFluid.applyCellVelocities();
+console.log("Before advection: ", myFluid.findVelocityAtPoint(new Vector(xVal, yVal)).x);
+console.table(myFluid.cells[0][0].vectors)
+myFluid.advectVelocities(0.8);
+// myFluid.advectCellVelocities(myFluid.cells[0][0], 0.8);
+console.table(myFluid.cells[0][0].vectors)
+myFluid.applyCellVelocities();
+console.table(myFluid.cells[0][0].vectors)
+console.log("After advection: ", myFluid.findVelocityAtPoint(new Vector(xVal, yVal)).x);
 
 
 
@@ -455,4 +535,4 @@ let myFluid:Fluid = new Fluid(3, 3, 1);
 
 
 
-console.log(myFluid.findVelocityAtPoint(new Vector(2.9, 0.1)).x);
+// console.log(myFluid.findVelocityAtPoint(new Vector(2.9, 0.1)).x);
