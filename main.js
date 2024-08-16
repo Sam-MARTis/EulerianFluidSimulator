@@ -64,21 +64,33 @@ class Cell {
 class Fluid {
     constructor(x_dim, y_dim, cellSize) {
         this.cells = [];
+        this.vectorsListVert = [];
+        this.vectorsListHoriz = [];
         this.createCells = () => {
+            //First create horizontal vectors thennn work on vertical
+            for (let i = 0; i < this.cellCount.y; i++) {
+                this.vectorsListHoriz.push([]);
+                this.vectorsListHoriz[i].push(new Vector(LEFT_BOUNDARY_Vel, 0));
+                for (let j = 1; j < this.cellCount.x + 1; j++) {
+                    this.vectorsListHoriz[i].push(new Vector(0, 0));
+                }
+            }
+            for (let i = 0; i < this.cellCount.y + 1; i++) {
+                this.vectorsListVert.push([]);
+                for (let j = 0; j < this.cellCount.x; j++) {
+                    this.vectorsListVert[i].push(new Vector(0, 0));
+                }
+            }
             for (let i = 0; i < this.cellCount.x; i++) {
                 this.cells.push([]);
                 for (let j = 0; j < this.cellCount.y; j++) {
                     const pos = new Vector(j * this.cellSize, i * this.cellSize);
-                    const vl = new Vector(0, 0);
-                    const vu = new Vector(0, 0);
-                    const vr = new Vector(0, 0);
-                    const vd = new Vector(0, 0);
-                    this.cells[i].push(new Cell(pos, this.cellSize, false, vl, vu, vr, vd));
+                    this.cells[i].push(new Cell(pos, this.cellSize, false, this.vectorsListHoriz[pos.y][pos.x], this.vectorsListVert[pos.y][pos.x], this.vectorsListHoriz[pos.y][pos.x + 1], this.vectorsListVert[pos.y + 1][pos.x]));
                 }
             }
-            for (let i = 0; i < this.cellCount.y; i++) {
-                this.cells[i][0].vl = new Vector(LEFT_BOUNDARY_Vel, 0);
-            }
+            // for(let i = 0; i<this.cellCount.y; i++){
+            //     this.cells[i][0].vl = new Vector(LEFT_BOUNDARY_Vel, 0);
+            // }
         };
         this.findVelocityAtPoint = (point) => {
             const x = Math.floor(point.x / this.cellSize);
@@ -400,13 +412,32 @@ class Fluid {
 let myFluid = new Fluid(3, 3, 1);
 const xVal = 0.2;
 const yVal = 0.7;
-myFluid.applyCellVelocities();
-console.log("Before advection: ", myFluid.findVelocityAtPoint(new Vector(xVal, yVal)).x);
-console.table(myFluid.cells[0][0].vectors);
-myFluid.advectVelocities(0.8);
-// myFluid.advectCellVelocities(myFluid.cells[0][0], 0.8);
-console.table(myFluid.cells[0][0].vectors);
-myFluid.applyCellVelocities();
-console.table(myFluid.cells[0][0].vectors);
-console.log("After advection: ", myFluid.findVelocityAtPoint(new Vector(xVal, yVal)).x);
+// myFluid.applyCellVelocities();
+// console.log("Before advection: ", myFluid.findVelocityAtPoint(new Vector(xVal, yVal)).x);
+// console.table(myFluid.cells[0][0].vectors)
+// myFluid.advectVelocities(0.8);
+// // myFluid.advectCellVelocities(myFluid.cells[0][0], 0.8);
+// console.table(myFluid.cells[0][0].vectors)
+// myFluid.applyCellVelocities();
+// console.table(myFluid.cells[0][0].vectors)
+// console.log("After advection: ", myFluid.findVelocityAtPoint(new Vector(xVal, yVal)).x);
 // console.log(myFluid.findVelocityAtPoint(new Vector(2.9, 0.1)).x);
+// Testing pass by reference
+console.table(myFluid.cells[0][0].vectors);
+console.table(myFluid.cells[0][1].vectors);
+console.log("One done");
+myFluid.cells[0][0].vectors[0].update(100, 100, true);
+console.table(myFluid.cells[0][0].vectors);
+console.table(myFluid.cells[0][1].vectors);
+console.log("Two done");
+myFluid.cells[0][0].vectors[2].update(150, 160, true);
+console.table(myFluid.cells[0][0].vectors);
+console.table(myFluid.cells[0][1].vectors);
+console.log("Three done");
+myFluid.cells[0][0].vectors[2].cacheVec(new Vector(200, 200));
+console.table(myFluid.cells[0][0].vectors);
+console.table(myFluid.cells[0][1].vectors);
+console.log("Four done");
+myFluid.cells[0][0].vectors[2].applyCache();
+console.table(myFluid.cells[0][0].vectors);
+console.table(myFluid.cells[0][1].vectors);
