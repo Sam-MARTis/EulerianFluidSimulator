@@ -38,7 +38,7 @@ class Vector {
       this.x_stored = this.x;
       this.y_stored = this.y;
     }
-  }
+  };
   cache = (x: number, y: number, override: boolean = false): void => {
     if (this.isMutable || override) {
       this.x_stored = x;
@@ -110,7 +110,13 @@ class Cell {
     return this.vl.x - this.vr.x + this.vu.y - this.vd.y;
   };
   makeDivergenceZero = (): void => {
+    // try{
     const divergence = this.findDivergence();
+    // }
+    // catch{
+    //   console.table(this.vectors);
+    //   console.log("X: ", this.pos.x, "Y: ", this.pos.y);
+    // }
     let mutableVectorsCount = 0;
     for (let i = 0; i < this.vectors.length; i++) {
       if (this.vectors[i].isMutable) {
@@ -120,23 +126,25 @@ class Cell {
     if (mutableVectorsCount == 0) {
       throw new Error("No mutable vectors found in cell. Divergence zero failed");
     }
+
     const divergencePerVector = divergence / mutableVectorsCount;
     this.vl.increment(-(OVER_RELAXATION) * divergencePerVector, 0)
     this.vr.increment((OVER_RELAXATION) * divergencePerVector, 0)
     this.vu.increment(0, -(OVER_RELAXATION) * divergencePerVector)
     this.vd.increment(0, (OVER_RELAXATION) * divergencePerVector)
+
     // this.vl.x -= (OVER_RELAXATION) * divergencePerVector;
     // this.vr.x += (OVER_RELAXATION) * divergencePerVector;
     // this.vu.y -= (OVER_RELAXATION) * divergencePerVector;
     // this.vd.y += (OVER_RELAXATION) * divergencePerVector;
   };
-  makeDivergenceZeroCache = (): void => {
-    const divergence = this.findDivergence();
-    this.vl.addToCache((-OVER_RELAXATION * divergence) / 4, 0);
-    this.vr.addToCache((OVER_RELAXATION * divergence) / 4, 0);
-    this.vu.addToCache(0, (-OVER_RELAXATION * divergence) / 4);
-    this.vd.addToCache(0, (OVER_RELAXATION * divergence) / 4);
-  };
+  // makeDivergenceZeroCache = (): void => {
+  //   const divergence = this.findDivergence();
+  //   // this.vl.addToCache((-OVER_RELAXATION * divergence) / 4, 0);
+  //   // this.vr.addToCache((OVER_RELAXATION * divergence) / 4, 0);
+  //   // this.vu.addToCache(0, (-OVER_RELAXATION * divergence) / 4);
+  //   // this.vd.addToCache(0, (OVER_RELAXATION * divergence) / 4);
+  // };
 
   applyVectorCache = (): void => {
     this.vl.applyCache();
@@ -189,50 +197,71 @@ class Fluid {
   }
 
   createCells = (): void => {
-    //First create horizontal vectors thennn work on vertical
+    // Initialize horizontal vectors
+    this.vectorsListHoriz = [];
+    this.vectorsListVert = [];
     for (let i = 0; i < this.cellCount.y; i++) {
       this.vectorsListHoriz.push([]);
-      this.vectorsListHoriz[i].push(new Vector(LEFT_BOUNDARY_Vel, 0, false));
-      for (let j = 1; j < this.cellCount.x + 1; j++) {
+      for (let j = 0; j < this.cellCount.x + 1; j++) {
         this.vectorsListHoriz[i].push(new Vector(0, 0));
       }
     }
-    this.vectorsListVert.push([]);
-    for (let j = 0; j < this.cellCount.x; j++) {
-      this.vectorsListVert[0].push(new Vector(0, 0, false));
-    }
-    for (let i = 1; i < this.cellCount.y ; i++) {
+
+    for (let i = 0; i < this.cellCount.y+1; i++) {
       this.vectorsListVert.push([]);
       for (let j = 0; j < this.cellCount.x; j++) {
         this.vectorsListVert[i].push(new Vector(0, 0));
       }
     }
-    this.vectorsListVert.push([]);
-    for (let j = 0; j < this.cellCount.x; j++) {
-      this.vectorsListVert[0].push(new Vector(0, 0, false));
+    for (let i = 0; i < this.cellCount.y; i++) {
+      this.vectorsListHoriz[i][0] = new Vector(LEFT_BOUNDARY_Vel, 0, false);
+    }
+    for(let i = 0; i < this.cellCount.x; i++){
+      this.vectorsListVert[0][i] = new Vector(0, 0, false);
+      this.vectorsListVert[this.vectorsListVert.length-1][i] = new Vector(0, 0, false);
     }
 
-    for (let i = 0; i < this.cellCount.x; i++) {
+    // for (let i = 0; i < this.cellCount.y; i++) {
+    //   this.vectorsListHoriz.push([]);
+    //   this.vectorsListHoriz[i].push(new Vector(LEFT_BOUNDARY_Vel, 0, false)); // Left boundary
+    //   for (let j = 1; j < this.cellCount.x; j++) {
+    //     this.vectorsListHoriz[i].push(new Vector(0, 0)); // Internal cells
+    //   }
+    //   this.vectorsListHoriz[i].push(new Vector(0, 0)); // Right boundary
+    // }
+
+    // // Initialize vertical vectors
+    // for (let i = 0; i <= this.cellCount.y; i++) { // Note: using <= to include an extra row at the bottom
+    //   this.vectorsListVert.push([]);
+    //   for (let j = 0; j < this.cellCount.x; j++) {
+    //     if (i === 0 || i === this.cellCount.y+1) {
+    //       this.vectorsListVert[i].push(new Vector(0, 0, false)); // Top and bottom boundaries
+    //     } else {
+    //       this.vectorsListVert[i].push(new Vector(0, 0)); // Internal cells
+    //     }
+    //   }
+    // }
+
+    // Create cells
+    for (let i = 0; i < this.cellCount.y; i++) {
       this.cells.push([]);
-      for (let j = 0; j < this.cellCount.y; j++) {
+      for (let j = 0; j < this.cellCount.x; j++) {
         const pos = new Vector(j * this.cellSize, i * this.cellSize);
         this.cells[i].push(
           new Cell(
             pos,
             this.cellSize,
             false,
-            this.vectorsListHoriz[pos.y][pos.x],
-            this.vectorsListVert[pos.y][pos.x],
-            this.vectorsListHoriz[pos.y][pos.x + 1],
-            this.vectorsListVert[pos.y + 1][pos.x]
+            this.vectorsListHoriz[i][j], 
+            this.vectorsListVert[i][j], 
+            this.vectorsListHoriz[i][j + 1], 
+            this.vectorsListVert[i + 1][j]  
           )
         );
       }
     }
-    // for(let i = 0; i<this.cellCount.y; i++){
-    //     this.cells[i][0].vl = new Vector(LEFT_BOUNDARY_Vel, 0);
-    // }
   };
+
   findVelocityAtPoint = (point: Vector): Vector => {
     const x = Math.floor(point.x / this.cellSize);
     const y = Math.floor(point.y / this.cellSize);
@@ -621,27 +650,70 @@ class Fluid {
     }
   };
   eliminateDivergence = (iterations: number = 100): void => {
-    for (let i = 0; i < iterations; i++) {
+    for (let k = 0; k < iterations; k++) {
       for (let i = 0; i < this.cellCount.x; i++) {
         for (let j = 0; j < this.cellCount.y; j++) {
-          this.cells[j][i].makeDivergenceZeroCache();
+          // console.log(this.cellCount)
+          this.cells[j][i].makeDivergenceZero();
         }
       }
-      for (let i = 0; i < this.cellCount.x; i++) {
-        for (let j = 0; j < this.cellCount.y; j++) {
-          this.cells[j][i].applyVectorCache();
-        }
-      }
+      // for (let a = 0; a < this.cellCount.x; a++) {
+      //   for (let b = 0; b < this.cellCount.y; b++) {
+      //     this.cells[b][a].applyVectorCache();
+      //   }
+      // }
 
-      this.ensureBoundaryConditions();
+      // this.ensureBoundaryConditions();
     }
+  };
+  performIteration = (mu: number = 1000, dx: number, dt: number): void => {
+    // this.eliminateDivergence(1);
+    this.eliminateDivergence((mu * dt) / (dx * dx));
+    this.advectVelocities(dt);
+    this.applyCellVelocities();
   };
 }
 
 let myFluid: Fluid = new Fluid(3, 3, 1);
+// console.log(myFluid.cellCount);
 const xVal = 0.2;
 const yVal = 0.7;
+console.table(myFluid.cells[1][0].vectors);
+// for (let i = 0; i < 100; i++) {
+  myFluid.performIteration(100, 1, 0.1);
+// }
+// myFluid.cells[1][0].makeDivergenceZero();
 
+// myFluid.performIteration(1000, 1, 0.01);
+
+// console.table(myFluid.cells[0][0].vectors);
+// console.table(myFluid.cells[1][0].vectors);
+// console.table(myFluid.cells[0][1].vectors);
+
+// console.table(myFluid.cells[1][1].vectors);
+// myFluid.performIteration(1000, 1, 0.1);
+
+// console.log("VertVecs: ", myFluid.vectorsListVert.length);
+// console.log("HorizVecs: ", myFluid.vectorsListHoriz[0].length);
+
+// console.table(myFluid.cells[0][0].vectors);
+
+// myFluid.cells[2][2].makeDivergenceZero();
+
+// console.table(myFluid.cells[2][2].vectors)
+// myFluid.cells[2][2].applyVectorCache();
+// myFluid.cells[2][2].makeDivergenceZero();
+// console.table(myFluid.cells[2][2].vectors)
+
+// console.table(myFluid.cells[0][0].vectors);
+// console.table(myFluid.cells[1][0].vectors);
+// console.table(myFluid.cells[0][1].vectors);
+
+// console.table(myFluid.cells[1][1].vectors);
+// myFluid.performIteration(1000, 1, 0.1);
+
+// console.table(myFluid.cells[1][1].vectors);
+// myFluid.performIteration(1000, 1, 0.1);
 
 /*
 Things to do before starting next time:
@@ -653,35 +725,26 @@ Handle ensureBoundryConditions function
 
 */
 
+// myFluid.cells[1][0].vl.update(2, 2, true);
+// myFluid.cells[1][0].vr.update(-1, 2, true);
+// myFluid.cells[1][0].vu.update(2, 4, true);
+// myFluid.cells[1][0].vd.update(2, 0, true);
 
-myFluid.cells[1][0].vl.update(2, 2, true);
-myFluid.cells[1][0].vr.update(-1, 2, true);
-myFluid.cells[1][0].vu.update(2, 4, true);
-myFluid.cells[1][0].vd.update(2, 0, true);
-
-console.table(myFluid.cells[0][0].vectors);
-console.table(myFluid.cells[1][0].vectors);
-console.log("Divergence: ", myFluid.cells[1][0].findDivergence());
-myFluid.cells[1][0].makeDivergenceZero();
-console.table(myFluid.cells[0][0].vectors);
-console.table(myFluid.cells[1][0].vectors);
-console.log("Divergence: ", myFluid.cells[1][0].findDivergence());
-myFluid.cells[1][0].makeDivergenceZero();
-console.table(myFluid.cells[0][0].vectors);
-console.table(myFluid.cells[1][0].vectors);
-console.log("Divergence: ", myFluid.cells[1][0].findDivergence());
-myFluid.cells[1][0].makeDivergenceZero();
-console.table(myFluid.cells[0][0].vectors);
-console.table(myFluid.cells[1][0].vectors);
-console.log("Divergence: ", myFluid.cells[1][0].findDivergence());
-
-
-
-
-
-
-
-
+// console.table(myFluid.cells[0][0].vectors);
+// console.table(myFluid.cells[1][0].vectors);
+// console.log("Divergence: ", myFluid.cells[1][0].findDivergence());
+// myFluid.cells[1][0].makeDivergenceZero();
+// console.table(myFluid.cells[0][0].vectors);
+// console.table(myFluid.cells[1][0].vectors);
+// console.log("Divergence: ", myFluid.cells[1][0].findDivergence());
+// myFluid.cells[1][0].makeDivergenceZero();
+// console.table(myFluid.cells[0][0].vectors);
+// console.table(myFluid.cells[1][0].vectors);
+// console.log("Divergence: ", myFluid.cells[1][0].findDivergence());
+// myFluid.cells[1][0].makeDivergenceZero();
+// console.table(myFluid.cells[0][0].vectors);
+// console.table(myFluid.cells[1][0].vectors);
+// console.log("Divergence: ", myFluid.cells[1][0].findDivergence());
 
 // myFluid.applyCellVelocities();
 // console.log("Before advection: ", myFluid.findVelocityAtPoint(new Vector(xVal, yVal)).x);
