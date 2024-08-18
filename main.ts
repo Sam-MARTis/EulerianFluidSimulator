@@ -2,10 +2,15 @@ const canvas = document.getElementById("projectCanvas") as HTMLCanvasElement;
 canvas.width = window.innerWidth * devicePixelRatio;
 canvas.height = window.innerHeight * devicePixelRatio;
 const ctx = canvas.getContext("2d");
+if (ctx === null) {
+  throw new Error("Context is null");
+}
 
 //Constants
 const OVER_RELAXATION = 1.4;
 const LEFT_BOUNDARY_Vel = 2;
+const CELL_SIZE = 1;
+const DRAW_SCALE = 5;
 
 //End constants
 console.clear();
@@ -31,6 +36,10 @@ class Vector {
       this.y_stored = y;
     }
   };
+  setMutability = (isMutable: boolean): void => {
+    this.isMutable = isMutable;
+  }
+
   increment = (x: number, y: number, override: boolean = false): void => {
     if (this.isMutable || override) {
       this.x += x;
@@ -76,6 +85,12 @@ class Vector {
     // this.y = this.y_stored;
   };
 }
+
+const normaliseDivergenceToColour = (divergence: number, normalizationFactor: number): number => {
+  // return Math.exp(-((divergence/normalizationFactor)**2));
+  return 0.5 + Math.tanh(divergence/normalizationFactor)/Math.PI;
+}
+
 
 class Cell {
   pos: Vector;
@@ -124,6 +139,9 @@ class Cell {
       }
     }
     if (mutableVectorsCount == 0) {
+      if (this.isWall) {
+        return;
+      }
       throw new Error("No mutable vectors found in cell. Divergence zero failed");
     }
 
@@ -672,17 +690,87 @@ class Fluid {
     this.advectVelocities(dt);
     this.applyCellVelocities();
   };
+  
+  drawFluid = (ctx: CanvasRenderingContext2D, scalingFactor: number): void => {
+    for (let i = 0; i < this.cellCount.x; i++) {
+      for (let j = 0; j < this.cellCount.y; j++) {
+        const cell = this.cells[j][i];
+        ctx.beginPath();
+        // ctx.moveTo(cell.pos.x, cell.pos.y);
+        ctx.rect(cell.pos.x*scalingFactor, cell.pos.y*scalingFactor, cell.size*scalingFactor, cell.size*scalingFactor);
+        const divergenceToUse = normaliseDivergenceToColour(cell.findDivergence(), 10);
+        ctx.fillStyle = `rgb(${Math.abs(divergenceToUse) * 255}, 0, ${(1-Math.abs(divergenceToUse)) * 255})`;
+        if(cell.isWall){
+          ctx.fillStyle = 'black';
+        }
+
+        ctx.fill();
+        // ctx.beginPath();
+        // ctx.moveTo(cell.pos.x, cell.pos.y);
+        // ctx.lineTo(cell.pos.x + cell.size, cell.pos.y);
+        // ctx.lineTo(cell.pos.x + cell.size, cell.pos.y + cell.size);
+        // ctx.lineTo(cell.pos.x, cell.pos.y + cell.size);
+        // ctx.lineTo(cell.pos.x, cell.pos.y);
+        // ctx.stroke();
+      }
+    }
+  }
+
+
+  makeWall = (x: number, y: number, rx1: number, ry1: number) => {
+    for (let i = x; i < rx1; i++) {
+      for (let j = y; j < ry1; j++) {
+        this.cells[j][i].isWall = true;
+        this.cells[j][i].vl.update(0, 0, true);
+        this.cells[j][i].vu.update(0, 0, true);
+        this.cells[j][i].vr.update(0, 0, true);
+        this.cells[j][i].vd.update(0, 0, true);
+        this.cells[j][i].vl.setMutability(false);
+        this.cells[j][i].vu.setMutability(false);
+        this.cells[j][i].vr.setMutability(false);
+        this.cells[j][i].vd.setMutability(false);
+      }
+    }
+  }
 }
 
-let myFluid: Fluid = new Fluid(3, 3, 1);
+let myFluid: Fluid = new Fluid(50, 50, CELL_SIZE);
+myFluid.makeWall(20, 20, 30, 30);
+
 // console.log(myFluid.cellCount);
 const xVal = 0.2;
 const yVal = 0.7;
-console.table(myFluid.cells[1][0].vectors);
+// console.table(myFluid.cells[1][0].vectors);
+
+
+myFluid.drawFluid(ctx, 5);
+
+
+const mainFunction = () => {
+  myFluid.performIteration(1000, 1, 0.01);
+  myFluid.drawFluid(ctx, DRAW_SCALE);
+  console.log("Iteration done");
+}
+
+setInterval(mainFunction, 1000/60);
+
+
+
+const findInfo = (e: MouseEvent) => {
+  const rect = canvas.getBoundingClientRect();
+  const x = e.clientX - rect.left;
+  const y = e.clientY - rect.top;
+  console.log("X: ", x, "Y: ", y);
+  const vel = myFluid.findVelocityAtPoint(new Vector(x/DRAW_SCALE, y/DRAW_SCALE));
+
+  console.log("Velocity-> X: ", vel.x, "Y: ", vel.y);
+} 
+
+canvas.addEventListener('mousemove', findInfo);
 // for (let i = 0; i < 100; i++) {
-  myFluid.performIteration(100, 1, 0.1);
+//   myFluid.performIteration(1000, 1, 0.01);
 // }
-// myFluid.cells[1][0].makeDivergenceZero();
+// // myFluid.cells[1][0].makeDivergenceZero();
 
 // myFluid.performIteration(1000, 1, 0.01);
 
