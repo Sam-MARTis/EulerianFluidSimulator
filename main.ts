@@ -10,7 +10,7 @@ if (ctx === null) {
 const OVER_RELAXATION = 1.4;
 const LEFT_BOUNDARY_Vel = 2;
 const CELL_SIZE = 1;
-const DRAW_SCALE = 5;
+const DRAW_SCALE = 10;
 
 //End constants
 console.clear();
@@ -90,7 +90,29 @@ const normaliseDivergenceToColour = (divergence: number, normalizationFactor: nu
   // return Math.exp(-((divergence/normalizationFactor)**2));
   return 0.5 + Math.tanh(divergence/normalizationFactor)/Math.PI;
 }
-
+class fluidPoint{
+  pos: Vector;
+  vel: Vector;
+  radius: number;
+  isAlive: boolean = true;
+  constructor(pos: Vector, vel: Vector, rad: number){
+    this.pos = pos;
+    this.vel = vel;
+    this.radius = rad;
+  }
+  setVelocity = (vel: Vector): void =>{
+    this.vel = vel;
+  }
+  applyVelocity = (dt: number): void =>{
+    this.pos.increment(this.vel.x*dt, this.vel.y*dt);
+  }
+  drawParticle = (ctx: CanvasRenderingContext2D, scalingFactor: number): void =>{
+    ctx.beginPath();
+    ctx.arc(this.pos.x*scalingFactor, this.pos.y*scalingFactor, this.radius*scalingFactor, 0, 2*Math.PI);
+    ctx.fillStyle = 'green';
+    ctx.fill();
+  }
+}
 
 class Cell {
   pos: Vector;
@@ -203,6 +225,9 @@ class Fluid {
   cellCount: Vector;
   vectorsListVert: Vector[][] = [];
   vectorsListHoriz: Vector[][] = [];
+  identifierParticles: fluidPoint[] = [];
+  timeSinceLastParticle: number = 0;
+  wallRanges: number[][] = [];
 
   constructor(x_dim: number, y_dim: number, cellSize: number) {
     this.dimensions = new Vector(x_dim, y_dim);
@@ -718,6 +743,7 @@ class Fluid {
 
 
   makeWall = (x: number, y: number, rx1: number, ry1: number) => {
+    this.wallRanges.push([x, y, rx1, ry1]);
     for (let i = x; i < rx1; i++) {
       for (let j = y; j < ry1; j++) {
         this.cells[j][i].isWall = true;
@@ -732,6 +758,44 @@ class Fluid {
       }
     }
   }
+
+  moveParticles = (dt: number) => {
+    for (let i = 0; i < this.identifierParticles.length; i++) {
+      const point = this.identifierParticles[i];
+      const vel = this.findVelocityAtPoint(point.pos);
+      point.setVelocity(vel);
+      point.applyVelocity(dt);
+    }
+  }
+  validateParticles = () => {
+    for (let i = 0; i < this.identifierParticles.length; i++) {
+      const point = this.identifierParticles[i];
+      if (point.pos.x < 0 || point.pos.x > this.dimensions.x || point.pos.y < 0 || point.pos.y > this.dimensions.y) {
+        point.isAlive = false;
+      }
+      for (let j = 0; j < this.wallRanges.length; j++) {
+        const wall = this.wallRanges[j];
+        if (point.pos.x > wall[0] && point.pos.x < wall[2] && point.pos.y > wall[1] && point.pos.y < wall[3]) {
+          point.isAlive = false;
+        }
+      }
+    }
+  }
+  handleParticleCreation = (maxParticles: number, dt: number) => {
+    this.identifierParticles = this.identifierParticles.filter((point) => {
+      return point.isAlive;
+    });
+    if(this.identifierParticles.length < maxParticles){
+      // this.timeSinceLastParticle += dt;
+      // if(this.timeSinceLastParticle > 0.1){
+      //   this.timeSinceLastParticle = 0;
+        const x = Math.random()*this.dimensions.x;
+        const y = Math.random()*this.dimensions.y;
+        this.identifierParticles.push(new fluidPoint(new Vector(x, y), new Vector(0, 0), 2));
+      }
+    }
+
+  
 }
 
 let myFluid: Fluid = new Fluid(50, 50, CELL_SIZE);
