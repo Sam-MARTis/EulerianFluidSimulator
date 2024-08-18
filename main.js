@@ -8,9 +8,11 @@ if (ctx === null) {
 }
 //Constants
 const OVER_RELAXATION = 1.4;
-const LEFT_BOUNDARY_Vel = 2;
+const LEFT_BOUNDARY_Vel = 6;
 const CELL_SIZE = 1;
 const DRAW_SCALE = 10;
+const PARTICLE_RADIUS = 0.2;
+const MAX_PARTICLES = 10000;
 //End constants
 console.clear();
 class Vector {
@@ -92,7 +94,7 @@ class fluidPoint {
         this.drawParticle = (ctx, scalingFactor) => {
             ctx.beginPath();
             ctx.arc(this.pos.x * scalingFactor, this.pos.y * scalingFactor, this.radius * scalingFactor, 0, 2 * Math.PI);
-            ctx.fillStyle = 'green';
+            ctx.fillStyle = "green";
             ctx.fill();
         };
         this.pos = pos;
@@ -127,10 +129,10 @@ class Cell {
                 throw new Error("No mutable vectors found in cell. Divergence zero failed");
             }
             const divergencePerVector = divergence / mutableVectorsCount;
-            this.vl.increment(-(OVER_RELAXATION) * divergencePerVector, 0);
-            this.vr.increment((OVER_RELAXATION) * divergencePerVector, 0);
-            this.vu.increment(0, -(OVER_RELAXATION) * divergencePerVector);
-            this.vd.increment(0, (OVER_RELAXATION) * divergencePerVector);
+            this.vl.increment(-OVER_RELAXATION * divergencePerVector, 0);
+            this.vr.increment(OVER_RELAXATION * divergencePerVector, 0);
+            this.vu.increment(0, -OVER_RELAXATION * divergencePerVector);
+            this.vd.increment(0, OVER_RELAXATION * divergencePerVector);
             // this.vl.x -= (OVER_RELAXATION) * divergencePerVector;
             // this.vr.x += (OVER_RELAXATION) * divergencePerVector;
             // this.vu.y -= (OVER_RELAXATION) * divergencePerVector;
@@ -160,7 +162,7 @@ class Cell {
     }
 }
 class Fluid {
-    constructor(x_dim, y_dim, cellSize) {
+    constructor(x_dim, y_dim, cellSize, ctx) {
         this.cells = [];
         this.vectorsListVert = [];
         this.vectorsListHoriz = [];
@@ -558,6 +560,7 @@ class Fluid {
             this.applyCellVelocities();
         };
         this.drawFluid = (ctx, scalingFactor) => {
+            ctx.clearRect(0, 0, this.dimensions.x * scalingFactor, this.dimensions.y * scalingFactor);
             for (let i = 0; i < this.cellCount.x; i++) {
                 for (let j = 0; j < this.cellCount.y; j++) {
                     const cell = this.cells[j][i];
@@ -567,7 +570,7 @@ class Fluid {
                     const divergenceToUse = normaliseDivergenceToColour(cell.findDivergence(), 10);
                     ctx.fillStyle = `rgb(${Math.abs(divergenceToUse) * 255}, 0, ${(1 - Math.abs(divergenceToUse)) * 255})`;
                     if (cell.isWall) {
-                        ctx.fillStyle = 'black';
+                        ctx.fillStyle = "black";
                     }
                     ctx.fill();
                     // ctx.beginPath();
@@ -607,18 +610,24 @@ class Fluid {
         this.validateParticles = () => {
             for (let i = 0; i < this.identifierParticles.length; i++) {
                 const point = this.identifierParticles[i];
-                if (point.pos.x < 0 || point.pos.x > this.dimensions.x || point.pos.y < 0 || point.pos.y > this.dimensions.y) {
+                if (point.pos.x < 0 ||
+                    point.pos.x > (this.dimensions.x * 0.95) ||
+                    point.pos.y < 0 ||
+                    point.pos.y > (this.dimensions.y)) {
                     point.isAlive = false;
                 }
                 for (let j = 0; j < this.wallRanges.length; j++) {
                     const wall = this.wallRanges[j];
-                    if (point.pos.x > wall[0] && point.pos.x < wall[2] && point.pos.y > wall[1] && point.pos.y < wall[3]) {
+                    if (point.pos.x > wall[0] &&
+                        point.pos.x < wall[2] &&
+                        point.pos.y > wall[1] &&
+                        point.pos.y < wall[3]) {
                         point.isAlive = false;
                     }
                 }
             }
         };
-        this.handleParticleCreation = (maxParticles, dt) => {
+        this.handleParticleCreation = (maxParticles, radius, dt) => {
             this.identifierParticles = this.identifierParticles.filter((point) => {
                 return point.isAlive;
             });
@@ -626,18 +635,37 @@ class Fluid {
                 // this.timeSinceLastParticle += dt;
                 // if(this.timeSinceLastParticle > 0.1){
                 //   this.timeSinceLastParticle = 0;
-                const x = Math.random() * this.dimensions.x;
-                const y = Math.random() * this.dimensions.y;
-                this.identifierParticles.push(new fluidPoint(new Vector(x, y), new Vector(0, 0), 2));
+                const x = Math.random() * (this.dimensions.x * 0.01);
+                const y = Math.random() * (this.dimensions.y);
+                this.identifierParticles.push(new fluidPoint(new Vector(x, y), new Vector(0, 0), radius));
             }
+        };
+        this.drawTracerParticles = (scalingFactor) => {
+            for (let i = 0; i < this.identifierParticles.length; i++) {
+                const point = this.identifierParticles[i];
+                point.drawParticle(this.ctx, scalingFactor);
+            }
+        };
+        // Call a function every interval that first validates particle, then moves and then creates new particles
+        this.mainDrawFunction = (speedUp) => {
+            for (let i = 0; i < speedUp; i++) {
+                myFluid.performIteration(1000, 1, 0.01);
+                myFluid.moveParticles(0.01);
+            }
+            myFluid.validateParticles();
+            myFluid.handleParticleCreation(MAX_PARTICLES, PARTICLE_RADIUS, 0.01);
+            myFluid.drawFluid(this.ctx, DRAW_SCALE);
+            myFluid.drawTracerParticles(DRAW_SCALE);
+            console.log("Iteration done");
         };
         this.dimensions = new Vector(x_dim, y_dim);
         this.cellSize = cellSize;
+        this.ctx = ctx;
         this.cellCount = new Vector(Math.floor(x_dim / cellSize), Math.floor(y_dim / cellSize));
         this.createCells();
     }
 }
-let myFluid = new Fluid(50, 50, CELL_SIZE);
+let myFluid = new Fluid(50, 50, CELL_SIZE, ctx);
 myFluid.makeWall(20, 20, 30, 30);
 // console.log(myFluid.cellCount);
 const xVal = 0.2;
@@ -645,8 +673,9 @@ const yVal = 0.7;
 // console.table(myFluid.cells[1][0].vectors);
 myFluid.drawFluid(ctx, 5);
 const mainFunction = () => {
-    myFluid.performIteration(1000, 1, 0.01);
-    myFluid.drawFluid(ctx, DRAW_SCALE);
+    // myFluid.performIteration(1000, 1, 0.01);
+    // myFluid.drawFluid(ctx, DRAW_SCALE);
+    myFluid.mainDrawFunction(5);
     console.log("Iteration done");
 };
 setInterval(mainFunction, 1000 / 60);
@@ -658,7 +687,7 @@ const findInfo = (e) => {
     const vel = myFluid.findVelocityAtPoint(new Vector(x / DRAW_SCALE, y / DRAW_SCALE));
     console.log("Velocity-> X: ", vel.x, "Y: ", vel.y);
 };
-canvas.addEventListener('mousemove', findInfo);
+canvas.addEventListener("mousemove", findInfo);
 // for (let i = 0; i < 100; i++) {
 //   myFluid.performIteration(1000, 1, 0.01);
 // }
