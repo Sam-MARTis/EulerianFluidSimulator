@@ -19,6 +19,14 @@ class Vector {
                 this.y_stored = y;
             }
         };
+        this.increment = (x, y, override = false) => {
+            if (this.isMutable || override) {
+                this.x += x;
+                this.y += y;
+                this.x_stored = this.x;
+                this.y_stored = this.y;
+            }
+        };
         this.cache = (x, y, override = false) => {
             if (this.isMutable || override) {
                 this.x_stored = x;
@@ -68,10 +76,24 @@ class Cell {
         };
         this.makeDivergenceZero = () => {
             const divergence = this.findDivergence();
-            this.vl.x -= (OVER_RELAXATION * divergence) / 4;
-            this.vr.x += (OVER_RELAXATION * divergence) / 4;
-            this.vu.y -= (OVER_RELAXATION * divergence) / 4;
-            this.vd.y += (OVER_RELAXATION * divergence) / 4;
+            let mutableVectorsCount = 0;
+            for (let i = 0; i < this.vectors.length; i++) {
+                if (this.vectors[i].isMutable) {
+                    mutableVectorsCount++;
+                }
+            }
+            if (mutableVectorsCount == 0) {
+                throw new Error("No mutable vectors found in cell. Divergence zero failed");
+            }
+            const divergencePerVector = divergence / mutableVectorsCount;
+            this.vl.increment(-(OVER_RELAXATION) * divergencePerVector, 0);
+            this.vr.increment((OVER_RELAXATION) * divergencePerVector, 0);
+            this.vu.increment(0, -(OVER_RELAXATION) * divergencePerVector);
+            this.vd.increment(0, (OVER_RELAXATION) * divergencePerVector);
+            // this.vl.x -= (OVER_RELAXATION) * divergencePerVector;
+            // this.vr.x += (OVER_RELAXATION) * divergencePerVector;
+            // this.vu.y -= (OVER_RELAXATION) * divergencePerVector;
+            // this.vd.y += (OVER_RELAXATION) * divergencePerVector;
         };
         this.makeDivergenceZeroCache = () => {
             const divergence = this.findDivergence();
@@ -398,14 +420,27 @@ class Fluid {
             const r2y = r1y + VRdy1;
             const d2x = d1x + VDdx1;
             const d2y = d1y + VDdy1;
-            console.table([
-                [l2x, l2y],
-                [u2x, u2y],
-                [r2x, r2y],
-                [d2x, d2y],
-            ]);
-            console.log("Deltas: ", VLdx1, VLdy1, VUdx1, VUdy1, VRdx1, VRdy1, VDdx1, VDdy1);
-            console.log("velocity found: ", this.findVelocityAtPoint(new Vector(l2x, l2y)));
+            // console.table([
+            //   [l2x, l2y],
+            //   [u2x, u2y],
+            //   [r2x, r2y],
+            //   [d2x, d2y],
+            // ]);
+            // console.log(
+            //   "Deltas: ",
+            //   VLdx1,
+            //   VLdy1,
+            //   VUdx1,
+            //   VUdy1,
+            //   VRdx1,
+            //   VRdy1,
+            //   VDdx1,
+            //   VDdy1
+            // );
+            // console.log(
+            //   "velocity found: ",
+            //   this.findVelocityAtPoint(new Vector(l2x, l2y))
+            // );
             cell.vl.cacheVec(this.findVelocityAtPoint(new Vector(l2x, l2y)));
             cell.vu.cacheVec(this.findVelocityAtPoint(new Vector(u2x, u2y)));
             cell.vr.cacheVec(this.findVelocityAtPoint(new Vector(r2x, r2y)));
@@ -465,13 +500,32 @@ const xVal = 0.2;
 const yVal = 0.7;
 /*
 Things to do before starting next time:
-Verify that the immutable vector creation in createCells function is correct.
-Verify that vector functions comply with immuatble arguement
-Test divergence function
+// Verify that the immutable vector creation in createCells function is correct.
+// Verify that vector functions comply with immuatble arguements
+// Test divergence function
 Handle ensureBoundryConditions function
 
 
 */
+myFluid.cells[1][0].vl.update(2, 2, true);
+myFluid.cells[1][0].vr.update(-1, 2, true);
+myFluid.cells[1][0].vu.update(2, 4, true);
+myFluid.cells[1][0].vd.update(2, 0, true);
+console.table(myFluid.cells[0][0].vectors);
+console.table(myFluid.cells[1][0].vectors);
+console.log("Divergence: ", myFluid.cells[1][0].findDivergence());
+myFluid.cells[1][0].makeDivergenceZero();
+console.table(myFluid.cells[0][0].vectors);
+console.table(myFluid.cells[1][0].vectors);
+console.log("Divergence: ", myFluid.cells[1][0].findDivergence());
+myFluid.cells[1][0].makeDivergenceZero();
+console.table(myFluid.cells[0][0].vectors);
+console.table(myFluid.cells[1][0].vectors);
+console.log("Divergence: ", myFluid.cells[1][0].findDivergence());
+myFluid.cells[1][0].makeDivergenceZero();
+console.table(myFluid.cells[0][0].vectors);
+console.table(myFluid.cells[1][0].vectors);
+console.log("Divergence: ", myFluid.cells[1][0].findDivergence());
 // myFluid.applyCellVelocities();
 // console.log("Before advection: ", myFluid.findVelocityAtPoint(new Vector(xVal, yVal)).x);
 // console.table(myFluid.cells[0][0].vectors)
