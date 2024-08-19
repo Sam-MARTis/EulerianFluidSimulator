@@ -8,18 +8,18 @@ if (ctx === null) {
 
 //Constants
 const LEFT_BOUNDARY_Vel = 4;
-const CELL_COUNT_X = 100;
-const CELL_COUNT_Y = 100;
+const CELL_COUNT_X = 5;
+const CELL_COUNT_Y = 5;
 const CELL_SIZE = 0.5;
 
 const DRAW_SCALE = 10;
 const PARTICLE_RADIUS = 0.12;
 const MAX_PARTICLES = 50000;
-const PARTICLE_FREQUENCY_MULTIPLIER = 40;
+const PARTICLE_FREQUENCY_MULTIPLIER = 10;
 
-const OVER_RELAXATION = 1.95;
-const MU = 50;
-const TIME_STEP = 0.1;
+const OVER_RELAXATION = 1.9;
+const MU = 100;
+const TIME_STEP = 0.04;
 const SPEED_MULTIPLIER = 1;
 
 
@@ -132,7 +132,7 @@ class FluidPoint {
       0,
       2 * Math.PI
     );
-    ctx.fillStyle = "green";
+    ctx.fillStyle = "red";
     ctx.fill();
   };
 }
@@ -141,6 +141,7 @@ class Cell {
   pos: Vector;
   size: number;
   isWall: boolean;
+  isTracerFluid: boolean = false;
   vectors: Vector[] = [];
   vl: Vector;
   vu: Vector;
@@ -750,7 +751,12 @@ class Fluid {
         })`;
         if (cell.isWall) {
           ctx.fillStyle = "black";
+        }else{
+          if(cell.isTracerFluid){
+            ctx.fillStyle = "red";
+          }
         }
+        cell.isTracerFluid = false;
 
         ctx.fill();
         // ctx.beginPath();
@@ -799,6 +805,7 @@ class Fluid {
 
       // point.setVelocity(vel);
       point.applyVelocity(dt);
+      this.cells[Math.floor(point.pos.y / CELL_SIZE)][Math.floor(point.pos.x / CELL_SIZE)].isTracerFluid = true;
     }
   };
   validateParticles = () => {
