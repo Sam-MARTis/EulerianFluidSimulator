@@ -7,7 +7,7 @@ if (ctx === null) {
     throw new Error("Context is null");
 }
 //Constants
-const LEFT_BOUNDARY_Vel = 4;
+const LEFT_BOUNDARY_Vel = 10;
 const CELL_COUNT_X = 5;
 const CELL_COUNT_Y = 5;
 const CELL_SIZE = 0.5;
@@ -15,8 +15,8 @@ const DRAW_SCALE = 10;
 const PARTICLE_RADIUS = 0.12;
 const MAX_PARTICLES = 50000;
 const PARTICLE_FREQUENCY_MULTIPLIER = 10;
-const OVER_RELAXATION = 1.9;
-const MU = 100;
+const OVER_RELAXATION = 1.96;
+const MU = 500;
 const TIME_STEP = 0.04;
 const SPEED_MULTIPLIER = 1;
 //End constants
@@ -84,7 +84,7 @@ class Vector {
         this.isMutable = isMutable;
     }
 }
-const normaliseDivergenceToColour = (divergence, normalizationFactor) => {
+const normaliseValueToColour = (divergence, normalizationFactor) => {
     // return Math.exp(-((divergence/normalizationFactor)**2));
     return 0.5 + Math.tanh(divergence / normalizationFactor) / Math.PI;
 };
@@ -112,12 +112,14 @@ class Cell {
     constructor(pos, size, isWall, vl, vu, vr, vd) {
         this.isTracerFluid = false;
         this.vectors = [];
+        this.pressure = 0;
         this.findDivergence = () => {
             return this.vl.x - this.vr.x + this.vu.y - this.vd.y;
         };
         this.makeDivergenceZero = () => {
             // try{
             const divergence = this.findDivergence();
+            this.pressure += divergence;
             // }
             // catch{
             //   console.table(this.vectors);
@@ -169,6 +171,7 @@ class Fluid {
         this.identifierParticles = [];
         this.timeSinceLastParticle = 0;
         this.wallRanges = [];
+        this.iterationCount = 0;
         this.createCells = () => {
             // Initialize horizontal vectors
             this.vectorsListHoriz = [];
@@ -546,12 +549,13 @@ class Fluid {
                         this.cells[j][i].makeDivergenceZero();
                     }
                 }
-                // for (let a = 0; a < this.cellCount.x; a++) {
-                //   for (let b = 0; b < this.cellCount.y; b++) {
-                //     this.cells[b][a].applyVectorCache();
-                //   }
-                // }
-                // this.ensureBoundaryConditions();
+            }
+        };
+        this.resetPressure = () => {
+            for (let i = 0; i < this.cellCount.x; i++) {
+                for (let j = 0; j < this.cellCount.y; j++) {
+                    this.cells[j][i].pressure = 0;
+                }
             }
         };
         this.performIteration = (mu = 100, dx, dt) => {
@@ -568,25 +572,23 @@ class Fluid {
                     ctx.beginPath();
                     // ctx.moveTo(cell.pos.x, cell.pos.y);
                     ctx.rect(cell.pos.x * scalingFactor, cell.pos.y * scalingFactor, cell.size * scalingFactor, cell.size * scalingFactor);
-                    const divergenceToUse = normaliseDivergenceToColour(cell.findDivergence(), 10);
-                    ctx.fillStyle = `rgb(${Math.abs(divergenceToUse) * 255}, 0, ${(1 - Math.abs(divergenceToUse)) * 255})`;
+                    // const valueToUseToColour = normaliseValueToColour(
+                    //   cell.pressure,
+                    //   30
+                    // );
+                    const valueToUseToColour = 1 - cell.pressure / 30;
+                    // this.resetPressure();
+                    ctx.fillStyle = `rgb(${Math.abs(valueToUseToColour) * 255}, 0, ${(1 - Math.abs(valueToUseToColour)) * 255})`;
                     if (cell.isWall) {
                         ctx.fillStyle = "black";
                     }
-                    else {
-                        if (cell.isTracerFluid) {
-                            ctx.fillStyle = "red";
-                        }
-                    }
-                    cell.isTracerFluid = false;
+                    // else{
+                    //   if(cell.isTracerFluid){
+                    //     ctx.fillStyle = "red";
+                    //   }
+                    // }
+                    // cell.isTracerFluid = false;
                     ctx.fill();
-                    // ctx.beginPath();
-                    // ctx.moveTo(cell.pos.x, cell.pos.y);
-                    // ctx.lineTo(cell.pos.x + cell.size, cell.pos.y);
-                    // ctx.lineTo(cell.pos.x + cell.size, cell.pos.y + cell.size);
-                    // ctx.lineTo(cell.pos.x, cell.pos.y + cell.size);
-                    // ctx.lineTo(cell.pos.x, cell.pos.y);
-                    // ctx.stroke();
                 }
             }
         };
@@ -670,13 +672,17 @@ class Fluid {
             for (let i = 0; i < speedUp; i++) {
                 myFluid.performIteration(MU, CELL_SIZE, dt);
                 myFluid.moveParticles(dt);
+                this.iterationCount++;
             }
             const t1 = performance.now();
             myFluid.validateParticles();
-            console.log(performance.now() - t1);
+            // console.log(performance.now() - t1);
             myFluid.handleParticleCreation(MAX_PARTICLES, PARTICLE_FREQUENCY_MULTIPLIER, PARTICLE_RADIUS);
-            myFluid.drawFluid(this.ctx, DRAW_SCALE);
-            myFluid.drawTracerParticles(DRAW_SCALE);
+            if (this.iterationCount % 1 == 0) {
+                myFluid.drawFluid(this.ctx, DRAW_SCALE);
+                myFluid.drawTracerParticles(DRAW_SCALE);
+                myFluid.resetPressure();
+            }
             // console.log("Iteration done");
         };
         this.dimensions = new Vector(x_dim, y_dim);
@@ -714,6 +720,7 @@ const findInfo = (e) => {
     console.log("X: ", x, "Y: ", y);
     const vel = myFluid.findVelocityAtPoint(new Vector(x / DRAW_SCALE, y / DRAW_SCALE));
     console.log("Velocity-> X: ", vel.x, "Y: ", vel.y);
+    console.log("Pressure: ", myFluid.cells[Math.floor(y / (DRAW_SCALE * CELL_SIZE))][Math.floor(x / (DRAW_SCALE * CELL_SIZE))].pressure);
 };
 canvas.addEventListener("mousemove", findInfo);
 /*
