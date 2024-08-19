@@ -15,12 +15,12 @@ const CELL_SIZE = 0.5;
 const DRAW_SCALE = 10;
 const PARTICLE_RADIUS = 0.12;
 const MAX_PARTICLES = 50000;
-const PARTICLE_FREQUENCY_MULTIPLIER = 10;
+const PARTICLE_FREQUENCY_MULTIPLIER = 40;
 
-const OVER_RELAXATION = 1.4;
-const MU = 100;
-const TIME_STEP = 0.01;
-const SPEED_MULTIPLIER = 5;
+const OVER_RELAXATION = 1.95;
+const MU = 50;
+const TIME_STEP = 0.1;
+const SPEED_MULTIPLIER = 1;
 
 
 //End constants
@@ -871,8 +871,8 @@ class Fluid {
 }
 
 let myFluid: Fluid = new Fluid(50, 50, CELL_SIZE, ctx);
-myFluid.makeWall(0.3, 0.2, 0.6, 0.8);
-myFluid.makeWall(0.1, 0.1, 0.6, 0.3);
+myFluid.makeWall(0.3, 0.4, 0.4, 0.6);
+myFluid.makeWall(0.45, 0.55, 0.5, 0.7);
 // console.log(myFluid.cellCount);
 const xVal = 0.2;
 const yVal = 0.7;
