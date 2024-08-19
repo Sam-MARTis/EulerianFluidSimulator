@@ -7,24 +7,30 @@ if (ctx === null) {
 }
 
 //Constants
-const LEFT_BOUNDARY_Vel = 10;
-const CELL_COUNT_X = 5;
-const CELL_COUNT_Y = 5;
+const LEFT_BOUNDARY_Vel = 5;
+const CELL_COUNT_X = 50;
+const CELL_COUNT_Y = 50;
 const CELL_SIZE = 0.5;
 
 const DRAW_SCALE = 10;
-const PARTICLE_RADIUS = 0.12;
-const MAX_PARTICLES = 50000;
-const PARTICLE_FREQUENCY_MULTIPLIER = 10;
+const PARTICLE_RADIUS = 0.07;
+const MAX_PARTICLES = 100000;
+const PARTICLE_FREQUENCY_MULTIPLIER = 100;
+const PRESSURE_SCALE = 0.7;
+const FRACTION_OF_INPUT_TO_DRAW = 0.8;
+//Decrease to make blue
 
-const OVER_RELAXATION = 1.96;
-const MU = 500;
-const TIME_STEP = 0.04;
+const OVER_RELAXATION = 1.80;
+const MU = 50;
+const TIME_STEP = 0.03;
 const SPEED_MULTIPLIER = 1;
+const DRAW_INTERVAL = 1;
+const CALCULATE_TO_DRAW_RATIO = 3;
 
 
 //End constants
 console.clear();
+
 
 class Vector {
   x: number;
@@ -104,6 +110,11 @@ const normaliseValueToColour = (
   // return Math.exp(-((divergence/normalizationFactor)**2));
   return 0.5 + Math.tanh(divergence / normalizationFactor) / Math.PI;
 };
+
+
+const normaliseValueToColour2 = (value: number, normalizationFactor: number): number => {
+  return Math.sign(value-0.5) * (Math.abs(value-0.5)**(1/normalizationFactor));
+}
 class FluidPoint {
   pos: Vector;
   vel: Vector;
@@ -753,7 +764,15 @@ class Fluid {
         //   30
         // );
 
-        const valueToUseToColour =  1- cell.pressure / 30;
+        // let valueToUseToColour =  1- cell.pressure / PRESSURE_SCALE;
+        // if(valueToUseToColour < 0){
+        //   valueToUseToColour = 0;
+        // }
+        // if(valueToUseToColour > 1){
+        //   valueToUseToColour = 1;
+        // }
+        const valueToUseToColour = 0
+
 
 
 
@@ -820,7 +839,7 @@ class Fluid {
       const point = this.identifierParticles[i];
       if (
         point.pos.x < 0 ||
-        point.pos.x > (this.dimensions.x*0.95) ||
+        point.pos.x > (this.dimensions.x*0.99) ||
         point.pos.y < 0 ||
         point.pos.y > (this.dimensions.y)
       ) {
@@ -849,7 +868,7 @@ class Fluid {
       // if(this.timeSinceLastParticle > 0.1){
       //   this.timeSinceLastParticle = 0;
       const x = Math.random() * (this.dimensions.x*0.01);
-      const y = this.dimensions.y*0.3 + Math.random() * (this.dimensions.y*0.4);
+      const y = this.dimensions.y*(0.5 - FRACTION_OF_INPUT_TO_DRAW/2) + Math.random() * (this.dimensions.y*FRACTION_OF_INPUT_TO_DRAW);
       this.identifierParticles.push(
         new FluidPoint(new Vector(x, y), new Vector(0, 0), radius)
       );}
@@ -868,23 +887,24 @@ class Fluid {
 
   mainDrawFunction = (speedUp: number, dt: number = TIME_STEP, mu: number=100) => {
     for (let i = 0; i < speedUp; i++) {
-      myFluid.performIteration(MU, CELL_SIZE, dt);
-      myFluid.moveParticles(dt);
+      this.resetPressure();
+      this.performIteration(MU, CELL_SIZE, dt);
+      this.moveParticles(dt);
       this.iterationCount++;
     }
 
-    const t1 = performance.now();
-    myFluid.validateParticles();
+    // const t1 = performance.now();
+    this.validateParticles();
     // console.log(performance.now() - t1);
 
 
 
 
-    myFluid.handleParticleCreation(MAX_PARTICLES, PARTICLE_FREQUENCY_MULTIPLIER,  PARTICLE_RADIUS);
-    if(this.iterationCount % 1 == 0){
-    myFluid.drawFluid(this.ctx, DRAW_SCALE);
-    myFluid.drawTracerParticles(DRAW_SCALE);
-    myFluid.resetPressure();
+    this.handleParticleCreation(MAX_PARTICLES, PARTICLE_FREQUENCY_MULTIPLIER,  PARTICLE_RADIUS);
+    if(this.iterationCount % CALCULATE_TO_DRAW_RATIO == 0){
+    this.drawFluid(this.ctx, DRAW_SCALE);
+    this.drawTracerParticles(DRAW_SCALE);
+    // this.resetPressure();
     }
     // console.log("Iteration done");
   };
@@ -893,6 +913,9 @@ class Fluid {
 let myFluid: Fluid = new Fluid(50, 50, CELL_SIZE, ctx);
 myFluid.makeWall(0.3, 0.4, 0.4, 0.6);
 myFluid.makeWall(0.45, 0.55, 0.5, 0.7);
+
+
+
 // console.log(myFluid.cellCount);
 const xVal = 0.2;
 const yVal = 0.7;
@@ -914,7 +937,7 @@ const mainFunction = () => {
 timeVal = performance.now();
 // requestAnimationFrame(mainFunction);
 
-setInterval(mainFunction, 1000 / 60);
+setInterval(mainFunction, DRAW_INTERVAL);
 
 const findInfo = (e: MouseEvent) => {
   const rect = canvas.getBoundingClientRect();
@@ -929,7 +952,15 @@ const findInfo = (e: MouseEvent) => {
   console.log("Pressure: ", myFluid.cells[Math.floor(y /(DRAW_SCALE*CELL_SIZE))][Math.floor(x / (DRAW_SCALE*CELL_SIZE))].pressure);
 };
 
+const addWallFromClick = (e: MouseEvent) => {
+  const rect = canvas.getBoundingClientRect();
+  const x = e.clientX - rect.left;
+  const y = e.clientY - rect.top;
+  myFluid.makeWall((x / (DRAW_SCALE*myFluid.dimensions.x))- 0.03, (y / (DRAW_SCALE*myFluid.dimensions.y)) - 0.03, (x / (DRAW_SCALE*myFluid.dimensions.x)) + 0.03, (y / (DRAW_SCALE*myFluid.dimensions.y))+ 0.03);
+}
+
 canvas.addEventListener("mousemove", findInfo);
+canvas.addEventListener("click", addWallFromClick);
 
 /*
 // for (let i = 0; i < 100; i++) {
