@@ -8,11 +8,13 @@ if (ctx === null) {
 }
 //Constants
 const OVER_RELAXATION = 1.4;
-const LEFT_BOUNDARY_Vel = 6;
+const LEFT_BOUNDARY_Vel = 1;
 const CELL_SIZE = 1;
 const DRAW_SCALE = 10;
-const PARTICLE_RADIUS = 0.2;
+const PARTICLE_RADIUS = 0.1;
 const MAX_PARTICLES = 10000;
+const PARTICLE_FREQUENCY_MULTIPLIER = 5;
+const TIME_STEP = 0.01;
 //End constants
 console.clear();
 class Vector {
@@ -560,7 +562,7 @@ class Fluid {
             this.applyCellVelocities();
         };
         this.drawFluid = (ctx, scalingFactor) => {
-            ctx.clearRect(0, 0, this.dimensions.x * scalingFactor, this.dimensions.y * scalingFactor);
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
             for (let i = 0; i < this.cellCount.x; i++) {
                 for (let j = 0; j < this.cellCount.y; j++) {
                     const cell = this.cells[j][i];
@@ -603,7 +605,12 @@ class Fluid {
             for (let i = 0; i < this.identifierParticles.length; i++) {
                 const point = this.identifierParticles[i];
                 const vel = this.findVelocityAtPoint(point.pos);
-                point.setVelocity(vel);
+                const pos = new Vector(point.pos.x, point.pos.y);
+                pos.x += vel.x * dt / 2;
+                pos.y += vel.y * dt / 2;
+                const velMid = this.findVelocityAtPoint(pos);
+                point.setVelocity(velMid);
+                // point.setVelocity(vel);
                 point.applyVelocity(dt);
             }
         };
@@ -627,17 +634,19 @@ class Fluid {
                 }
             }
         };
-        this.handleParticleCreation = (maxParticles, radius, dt) => {
+        this.handleParticleCreation = (maxParticles, frequencyMultiplier, radius) => {
             this.identifierParticles = this.identifierParticles.filter((point) => {
                 return point.isAlive;
             });
-            if (this.identifierParticles.length < maxParticles) {
-                // this.timeSinceLastParticle += dt;
-                // if(this.timeSinceLastParticle > 0.1){
-                //   this.timeSinceLastParticle = 0;
-                const x = Math.random() * (this.dimensions.x * 0.01);
-                const y = Math.random() * (this.dimensions.y);
-                this.identifierParticles.push(new fluidPoint(new Vector(x, y), new Vector(0, 0), radius));
+            for (let _ = 0; _ < frequencyMultiplier; _++) {
+                if (this.identifierParticles.length < maxParticles) {
+                    // this.timeSinceLastParticle += dt;
+                    // if(this.timeSinceLastParticle > 0.1){
+                    //   this.timeSinceLastParticle = 0;
+                    const x = Math.random() * (this.dimensions.x * 0.01);
+                    const y = this.dimensions.y * 0.3 + Math.random() * (this.dimensions.y * 0.4);
+                    this.identifierParticles.push(new fluidPoint(new Vector(x, y), new Vector(0, 0), radius));
+                }
             }
         };
         this.drawTracerParticles = (scalingFactor) => {
@@ -647,16 +656,18 @@ class Fluid {
             }
         };
         // Call a function every interval that first validates particle, then moves and then creates new particles
-        this.mainDrawFunction = (speedUp) => {
+        this.mainDrawFunction = (speedUp, dt = 0.01) => {
             for (let i = 0; i < speedUp; i++) {
-                myFluid.performIteration(1000, 1, 0.01);
-                myFluid.moveParticles(0.01);
+                myFluid.performIteration(100 * dt, 1, dt);
+                myFluid.moveParticles(dt);
             }
+            const t1 = performance.now();
             myFluid.validateParticles();
-            myFluid.handleParticleCreation(MAX_PARTICLES, PARTICLE_RADIUS, 0.01);
+            console.log(performance.now() - t1);
+            myFluid.handleParticleCreation(MAX_PARTICLES, PARTICLE_FREQUENCY_MULTIPLIER, PARTICLE_RADIUS);
             myFluid.drawFluid(this.ctx, DRAW_SCALE);
             myFluid.drawTracerParticles(DRAW_SCALE);
-            console.log("Iteration done");
+            // console.log("Iteration done");
         };
         this.dimensions = new Vector(x_dim, y_dim);
         this.cellSize = cellSize;
@@ -667,17 +678,24 @@ class Fluid {
 }
 let myFluid = new Fluid(50, 50, CELL_SIZE, ctx);
 myFluid.makeWall(20, 20, 30, 30);
+myFluid.makeWall(35, 30, 40, 40);
 // console.log(myFluid.cellCount);
 const xVal = 0.2;
 const yVal = 0.7;
 // console.table(myFluid.cells[1][0].vectors);
 myFluid.drawFluid(ctx, 5);
+let timeVal;
 const mainFunction = () => {
     // myFluid.performIteration(1000, 1, 0.01);
     // myFluid.drawFluid(ctx, DRAW_SCALE);
-    myFluid.mainDrawFunction(5);
-    console.log("Iteration done");
+    // const time2 = performance.now();
+    myFluid.mainDrawFunction(1, 0.1);
+    // console.log("Iteration done");
+    // console.log(myFluid.identifierParticles.length);
+    // requestAnimationFrame(mainFunction);
 };
+timeVal = performance.now();
+// requestAnimationFrame(mainFunction);
 setInterval(mainFunction, 1000 / 60);
 const findInfo = (e) => {
     const rect = canvas.getBoundingClientRect();
