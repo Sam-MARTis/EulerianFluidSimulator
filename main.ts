@@ -7,14 +7,21 @@ if (ctx === null) {
 }
 
 //Constants
-const OVER_RELAXATION = 1.4;
-const LEFT_BOUNDARY_Vel = 1;
-const CELL_SIZE = 1;
+const LEFT_BOUNDARY_Vel = 4;
+const CELL_COUNT_X = 100;
+const CELL_COUNT_Y = 100;
+const CELL_SIZE = 0.5;
+
 const DRAW_SCALE = 10;
-const PARTICLE_RADIUS = 0.1;
-const MAX_PARTICLES = 10000;
-const PARTICLE_FREQUENCY_MULTIPLIER = 5;
+const PARTICLE_RADIUS = 0.12;
+const MAX_PARTICLES = 50000;
+const PARTICLE_FREQUENCY_MULTIPLIER = 10;
+
+const OVER_RELAXATION = 1.4;
+const MU = 100;
 const TIME_STEP = 0.01;
+const SPEED_MULTIPLIER = 5;
+
 
 //End constants
 console.clear();
@@ -97,7 +104,7 @@ const normaliseDivergenceToColour = (
   // return Math.exp(-((divergence/normalizationFactor)**2));
   return 0.5 + Math.tanh(divergence / normalizationFactor) / Math.PI;
 };
-class fluidPoint {
+class FluidPoint {
   pos: Vector;
   vel: Vector;
   radius: number;
@@ -196,13 +203,7 @@ class Cell {
     // this.vu.y -= (OVER_RELAXATION) * divergencePerVector;
     // this.vd.y += (OVER_RELAXATION) * divergencePerVector;
   };
-  // makeDivergenceZeroCache = (): void => {
-  //   const divergence = this.findDivergence();
-  //   // this.vl.addToCache((-OVER_RELAXATION * divergence) / 4, 0);
-  //   // this.vr.addToCache((OVER_RELAXATION * divergence) / 4, 0);
-  //   // this.vu.addToCache(0, (-OVER_RELAXATION * divergence) / 4);
-  //   // this.vd.addToCache(0, (OVER_RELAXATION * divergence) / 4);
-  // };
+
 
   applyVectorCache = (): void => {
     this.vl.applyCache();
@@ -211,29 +212,7 @@ class Cell {
     this.vd.applyCache();
   };
 
-  // findVelocityAtPoint = (point: Vector): Vector|number =>{
-  //     const x = (point.x - this.pos.x)/this.size;
-  //     const y = (point.y - this.pos.y)/this.size;
-  //     if(x<0 || x>1 || y<0 || y>1){
-  //         return 0;
-  //     }
-  //     if(x<0.5){
-  //         if(y<0.5){
-  //             return this.vl;
-  //         }else{
-  //             return this.vd;
-  //         }
-  //     }
-  //     else{
-  //         if(y<0.5){
-  //             return this.vu;
-  //         }else{
-  //             return this.vr;
-  //         }
-  //     }
-
-  //     return new Vector(0, 0)
-  // }
+ 
 }
 
 class Fluid {
@@ -243,7 +222,7 @@ class Fluid {
   cellCount: Vector;
   vectorsListVert: Vector[][] = [];
   vectorsListHoriz: Vector[][] = [];
-  identifierParticles: fluidPoint[] = [];
+  identifierParticles: FluidPoint[] = [];
   timeSinceLastParticle: number = 0;
   wallRanges: number[][] = [];
   ctx: CanvasRenderingContext2D;
@@ -293,26 +272,6 @@ class Fluid {
       );
     }
 
-    // for (let i = 0; i < this.cellCount.y; i++) {
-    //   this.vectorsListHoriz.push([]);
-    //   this.vectorsListHoriz[i].push(new Vector(LEFT_BOUNDARY_Vel, 0, false)); // Left boundary
-    //   for (let j = 1; j < this.cellCount.x; j++) {
-    //     this.vectorsListHoriz[i].push(new Vector(0, 0)); // Internal cells
-    //   }
-    //   this.vectorsListHoriz[i].push(new Vector(0, 0)); // Right boundary
-    // }
-
-    // // Initialize vertical vectors
-    // for (let i = 0; i <= this.cellCount.y; i++) { // Note: using <= to include an extra row at the bottom
-    //   this.vectorsListVert.push([]);
-    //   for (let j = 0; j < this.cellCount.x; j++) {
-    //     if (i === 0 || i === this.cellCount.y+1) {
-    //       this.vectorsListVert[i].push(new Vector(0, 0, false)); // Top and bottom boundaries
-    //     } else {
-    //       this.vectorsListVert[i].push(new Vector(0, 0)); // Internal cells
-    //     }
-    //   }
-    // }
 
     // Create cells
     for (let i = 0; i < this.cellCount.y; i++) {
@@ -664,6 +623,30 @@ class Fluid {
     const d2x = d1x + VDdx1;
     const d2y = d1y + VDdy1;
 
+    const fullVL2 = this.findVelocityAtPoint(new Vector(l2x, l2y));
+    const fullVU2 = this.findVelocityAtPoint(new Vector(u2x, u2y));
+    const fullVR2 = this.findVelocityAtPoint(new Vector(r2x, r2y));
+    const fullVD2 = this.findVelocityAtPoint(new Vector(d2x, d2y));
+
+
+    const VLdx2 = (-fullVL2.x * dt);
+    const VLdy2 = (-fullVL2.y * dt);
+    const VUdx2 = (-fullVU2.x * dt);
+    const VUdy2 = (-fullVU2.y * dt);
+    const VRdx2 = (-fullVR2.x * dt);
+    const VRdy2 = (-fullVR2.y * dt);
+    const VDdx2 = (-fullVD2.x * dt);
+    const VDdy2 = (-fullVD2.y * dt);
+
+    const l3x = l1x + VLdx2;
+    const l3y = l1y + VLdy2;
+    const u3x = u1x + VUdx2;
+    const u3y = u1y + VUdy2;
+    const r3x = r1x + VRdx2;
+    const r3y = r1y + VRdy2;
+    const d3x = d1x + VDdx2;
+    const d3y = d1y + VDdy2;
+
     // console.table([
     //   [l2x, l2y],
     //   [u2x, u2y],
@@ -686,10 +669,10 @@ class Fluid {
     //   "velocity found: ",
     //   this.findVelocityAtPoint(new Vector(l2x, l2y))
     // );
-    cell.vl.cacheVec(this.findVelocityAtPoint(new Vector(l2x, l2y)));
-    cell.vu.cacheVec(this.findVelocityAtPoint(new Vector(u2x, u2y)));
-    cell.vr.cacheVec(this.findVelocityAtPoint(new Vector(r2x, r2y)));
-    cell.vd.cacheVec(this.findVelocityAtPoint(new Vector(d2x, d2y)));
+    cell.vl.cacheVec(this.findVelocityAtPoint(new Vector(l3x, l3y)));
+    cell.vu.cacheVec(this.findVelocityAtPoint(new Vector(u3x, u3y)));
+    cell.vr.cacheVec(this.findVelocityAtPoint(new Vector(r3x, r3y)));
+    cell.vd.cacheVec(this.findVelocityAtPoint(new Vector(d3x, d3y)));
   };
 
   advectVelocities = (dt: number): void => {
@@ -738,7 +721,7 @@ class Fluid {
       // this.ensureBoundaryConditions();
     }
   };
-  performIteration = (mu: number = 1000, dx: number, dt: number): void => {
+  performIteration = (mu: number = 100, dx: number, dt: number): void => {
     // this.eliminateDivergence(1);
     this.eliminateDivergence((mu * dt) / (dx * dx));
     this.advectVelocities(dt);
@@ -781,8 +764,12 @@ class Fluid {
     }
   };
 
-  makeWall = (x: number, y: number, rx1: number, ry1: number) => {
-    this.wallRanges.push([x, y, rx1, ry1]);
+  makeWall = (x_n: number, y_n: number, rx1_n: number, ry1_n: number) => {
+    const x = Math.floor(this.cellCount.x * x_n);
+    const y = Math.floor(this.cellCount.y * y_n);
+    const rx1 = this.cellCount.x * rx1_n;
+    const ry1 = this.cellCount.y * ry1_n;
+    this.wallRanges.push([x*CELL_SIZE, y*CELL_SIZE, rx1*CELL_SIZE, ry1*CELL_SIZE]);
     for (let i = x; i < rx1; i++) {
       for (let j = y; j < ry1; j++) {
         this.cells[j][i].isWall = true;
@@ -850,7 +837,7 @@ class Fluid {
       const x = Math.random() * (this.dimensions.x*0.01);
       const y = this.dimensions.y*0.3 + Math.random() * (this.dimensions.y*0.4);
       this.identifierParticles.push(
-        new fluidPoint(new Vector(x, y), new Vector(0, 0), radius)
+        new FluidPoint(new Vector(x, y), new Vector(0, 0), radius)
       );}
     }
   };
@@ -865,9 +852,9 @@ class Fluid {
 
   // Call a function every interval that first validates particle, then moves and then creates new particles
 
-  mainDrawFunction = (speedUp: number, dt: number = 0.01) => {
+  mainDrawFunction = (speedUp: number, dt: number = TIME_STEP, mu: number=100) => {
     for (let i = 0; i < speedUp; i++) {
-      myFluid.performIteration(100*dt, 1, dt);
+      myFluid.performIteration(MU, CELL_SIZE, dt);
       myFluid.moveParticles(dt);
     }
 
@@ -884,8 +871,8 @@ class Fluid {
 }
 
 let myFluid: Fluid = new Fluid(50, 50, CELL_SIZE, ctx);
-myFluid.makeWall(20, 20, 30, 30);
-myFluid.makeWall(35, 30, 40, 40);
+myFluid.makeWall(0.3, 0.2, 0.6, 0.8);
+myFluid.makeWall(0.1, 0.1, 0.6, 0.3);
 // console.log(myFluid.cellCount);
 const xVal = 0.2;
 const yVal = 0.7;
@@ -898,7 +885,7 @@ const mainFunction = () => {
   // myFluid.drawFluid(ctx, DRAW_SCALE);
   // const time2 = performance.now();
 
-  myFluid.mainDrawFunction(1, 0.1);
+  myFluid.mainDrawFunction(SPEED_MULTIPLIER, TIME_STEP);
   // console.log("Iteration done");
   // console.log(myFluid.identifierParticles.length);
   // requestAnimationFrame(mainFunction);
@@ -921,6 +908,8 @@ const findInfo = (e: MouseEvent) => {
 };
 
 canvas.addEventListener("mousemove", findInfo);
+
+/*
 // for (let i = 0; i < 100; i++) {
 //   myFluid.performIteration(1000, 1, 0.01);
 // }
@@ -956,7 +945,7 @@ canvas.addEventListener("mousemove", findInfo);
 
 // console.table(myFluid.cells[1][1].vectors);
 // myFluid.performIteration(1000, 1, 0.1);
-
+*/
 /*
 Things to do before starting next time:
 // Verify that the immutable vector creation in createCells function is correct.
@@ -966,7 +955,7 @@ Handle ensureBoundryConditions function
 
 
 */
-
+/*
 // myFluid.cells[1][0].vl.update(2, 2, true);
 // myFluid.cells[1][0].vr.update(-1, 2, true);
 // myFluid.cells[1][0].vu.update(2, 4, true);
@@ -1019,3 +1008,4 @@ Handle ensureBoundryConditions function
 // myFluid.cells[0][0].vectors[2].applyCache();
 // console.table(myFluid.cells[0][0].vectors);
 // console.table(myFluid.cells[0][1].vectors);
+*/
