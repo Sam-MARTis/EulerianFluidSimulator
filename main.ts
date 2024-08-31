@@ -8,21 +8,21 @@ if (ctx === null) {
 
 //Constants
 const LEFT_BOUNDARY_Vel = 5;
-const CELL_COUNT_X = 50;
-const CELL_COUNT_Y = 50;
+const CELL_COUNT_X = 100;
+const CELL_COUNT_Y = 100;
 const CELL_SIZE = 0.5;
 
-const DRAW_SCALE = 10;
+const DRAW_SCALE = 5;
 const PARTICLE_RADIUS = 0.07;
-const MAX_PARTICLES = 100000;
+const MAX_PARTICLES = 1000000;
 const PARTICLE_FREQUENCY_MULTIPLIER = 100;
 const PRESSURE_SCALE = 0.7;
 const FRACTION_OF_INPUT_TO_DRAW = 0.8;
 //Decrease to make blue
 
 const OVER_RELAXATION = 1.80;
-const MU = 50;
-const TIME_STEP = 0.03;
+const MU = 10;
+const TIME_STEP = 0.05;
 const SPEED_MULTIPLIER = 1;
 const DRAW_INTERVAL = 1;
 const CALCULATE_TO_DRAW_RATIO = 3;
@@ -910,7 +910,7 @@ class Fluid {
   };
 }
 
-let myFluid: Fluid = new Fluid(50, 50, CELL_SIZE, ctx);
+let myFluid: Fluid = new Fluid(CELL_COUNT_X, CELL_COUNT_Y, CELL_SIZE, ctx);
 myFluid.makeWall(0.3, 0.4, 0.4, 0.6);
 myFluid.makeWall(0.45, 0.55, 0.5, 0.7);
 
