@@ -16,16 +16,17 @@ const DRAW_SCALE = 5;
 const PARTICLE_RADIUS = 0.07;
 const MAX_PARTICLES = 1000000;
 const PARTICLE_FREQUENCY_MULTIPLIER = 100;
-const PRESSURE_SCALE = 0.7;
-const FRACTION_OF_INPUT_TO_DRAW = 0.8;
+const PRESSURE_SCALE = 0.4;
 //Decrease to make blue
 
-const OVER_RELAXATION = 1.80;
-const MU = 10;
+const FRACTION_OF_INPUT_TO_DRAW = 0.8;
+
+const OVER_RELAXATION = 1.85;
+const MU = 50;
 const TIME_STEP = 0.05;
 const SPEED_MULTIPLIER = 1;
 const DRAW_INTERVAL = 1;
-const CALCULATE_TO_DRAW_RATIO = 3;
+const CALCULATE_TO_DRAW_RATIO = 1;
 
 
 //End constants
@@ -267,7 +268,7 @@ class Fluid {
     for (let i = 0; i < this.cellCount.y; i++) {
       this.vectorsListHoriz.push([]);
       for (let j = 0; j < this.cellCount.x + 1; j++) {
-        this.vectorsListHoriz[i].push(new Vector(0, 0));
+        this.vectorsListHoriz[i].push(new Vector(LEFT_BOUNDARY_Vel, 0));
       }
     }
 
@@ -761,17 +762,17 @@ class Fluid {
         );
         // const valueToUseToColour = normaliseValueToColour(
         //   cell.pressure,
-        //   30
+        //   1
         // );
 
-        // let valueToUseToColour =  1- cell.pressure / PRESSURE_SCALE;
-        // if(valueToUseToColour < 0){
-        //   valueToUseToColour = 0;
-        // }
-        // if(valueToUseToColour > 1){
-        //   valueToUseToColour = 1;
-        // }
-        const valueToUseToColour = 0
+        let valueToUseToColour =1-  cell.pressure / PRESSURE_SCALE;
+        if(valueToUseToColour < 0){
+          valueToUseToColour = 0;
+        }
+        if(valueToUseToColour > 1){
+          valueToUseToColour = 1;
+        }
+        // const valueToUseToColour = 0
 
 
 
@@ -873,7 +874,10 @@ class Fluid {
         new FluidPoint(new Vector(x, y), new Vector(0, 0), radius)
       );}
     }
+
   };
+
+  
   drawTracerParticles = (
     scalingFactor: number
   ) => {
