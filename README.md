@@ -152,6 +152,16 @@ Exercise left for the reader :)
 
 
 
+## Pictures
+![image](https://github.com/user-attachments/assets/fb34b520-ad74-4fec-99be-cd7ecc9032c9)
+
+
+![image](https://github.com/user-attachments/assets/7e04fd0f-bfb5-45a4-bafb-3a55e503404a)
+
+
+![image](https://github.com/user-attachments/assets/220ed513-75d7-45f2-9cd0-d6464f6baeb3)
+
+
 
 
 
