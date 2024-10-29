@@ -5,7 +5,7 @@ This repo is still under development, so there are bugds in the code
 
 
 How it works(in short):
-When we attempt to numerically solve a differentoal equation, it is often useful to do it stps.
+When we attempt to numerically solve a differential equation, it is often useful to do it steps.
 Say,
 $$\frac{dq}{dt} = f(q)+g(q)$$
 We solve this as follows:
@@ -15,27 +15,27 @@ $$q' = q^n + \Delta t f(q^n)$$
 $$q^{n+1} = q' + \Delta t g({q'}^n)$$
 
 
-We do this in steps because we can use specialised and optimized functions for solving $f$ and $g$ respectively.
+We do this in steps because we can use specialized and optimized functions for solving $f$ and $g$, respectively.
 
 Additionally, the output of one step could have certain properties that help in the second function.
 
 
-In our case, when we want to simulate the fluid, we first make the fluid 'divergergence free' and THEN move the fluid.
+In our case, when we want to simulate the fluid, we first make the fluid 'divergence free' and THEN move the fluid.
 
 The first step is basically solving for incompressibility.
 
-The second step is called avection, wehre we move the fluid state forward in time by a small differential time.
+The second step is called advection, where we move the fluid state forward in time by a small differential time.
 
-It is important that we advect only across a diveregnce-free fluid.
-
-
+It is important that we advect only across a divergence-free fluid.
 
 
-We break the entire simulation space into grid. We'll be using a MAC grid.
-Next, we store all the vertical velociies of the fluid at a point in the top and bottom of the grid cell that the point is in.
-Similarly for horizonatal velocitires in right and left.
 
-Solving for divergence becomes easy now because we just have to make sure there is no cell with more fluid in than going out or vice verse. 
+
+We break the entire simulation space into a grid. We'll be using a MAC grid.
+Next, we store all the vertical velocities of the fluid at a point in the top and bottom of the grid cell where the point is.
+Similarly, for horizontal velocities on the right and left.
+
+Solving for divergence becomes easy now because we just have to make sure there is no cell with more fluid in than going out or vice versa. 
 
 ```typescript
   findDivergence = (): number => {
@@ -43,7 +43,7 @@ Solving for divergence becomes easy now because we just have to make sure there 
   };
 ```
 
-Once we have the divergence, we 'push' the velocities so that divergence of the cell in minimized
+Once we have the divergence, we 'push' the velocities so that the divergence of the cell is minimized.
 
 ```typescript
     this.vl.increment(-OVER_RELAXATION * divergencePerVector, 0);
@@ -52,10 +52,10 @@ Once we have the divergence, we 'push' the velocities so that divergence of the 
     this.vd.increment(0, OVER_RELAXATION * divergencePerVector);
 ```
 
-Overrelaxation is a technique used to speed up convergence. the OVER_RELAXATION constant is a number between 1 and 2
+Overrelaxation is a technique used to speed up convergence. The OVER_RELAXATION constant is a number between 1 and 2
 
 
-If we do this for all cells, enough number of times in an iteration, we would have a fairly diveregcne-free field.
+If we do this for all cells enough times in an iteration, we would have a fairly divergence-free field.
 
 ```typescript
   eliminateDivergence = (iterations: number = 100): void => {
@@ -70,12 +70,12 @@ If we do this for all cells, enough number of times in an iteration, we would ha
 ```
 
 
-Now that we have solved the divergence, it is time to move the fluid. FOr this, we move the velocity values at each of the cell boundries. This is equivalent to the whole fluid's movement.
+Now that we have solved the divergence, it is time to move the fluid. For this, we move the velocity values at each of the cell boundaries. This is equivalent to the whole fluid's movement.
 
-For the advection, we basically try to do the following: If the fluid moved, some fluid packet would now reach our current point. So that means, if we find the state of the fluid packet, we will know what value our current value should be in th future.
-So we try to find which packet of fluid would land on our point. This is called Semi-Lagrange advection
+For the advection, we basically try to do the following: If the fluid moves, some fluid packet will reach our current point. So that means if we find the state of the fluid packet, we will know what value our current value should be in the future.
+So we try to find which packet of fluid would land on our point. This is called Semi-Lagrange advection.
 
-If the velocity of our position(x) is v(x), then a first order approximation would be that the particle that landed here would be at x - v(x)dt. Ie, the new velocity after a time dt would be v(x-v(x)dt). This is correct and is a first order method, however we use a more accurate second order method called Runge Kutta 2
+If the velocity of our position(x) is v(x), then a first-order approximation would be that the particle that landed here would be at x - v(x)dt. I.e., the new velocity after a time it would be v(x-v(x)dt). This is correct and is a first-order method, however, we use a more accurate second-order method called Runge Kutta 2
 
 ```typescript
   advectCellVelocities = (cell: Cell, dt: number): void => {
@@ -144,10 +144,10 @@ If the velocity of our position(x) is v(x), then a first order approximation wou
 
 
 
-As for how we find v(x) at x, we linearly interpolate the velocity at point from the neighbour boundry values.
+As for how we find v(x) at x, we linearly interpolate the velocity at the point from the neighbour boundary values.
 
 
-This, is in essence, how one simulates fluids. I'm not cobvering walls cause that'll take another 20 minutes of typing. 
+This is, in essence, how one simulates fluids. I'm not covering walls cause that'll take another 20 minutes of typing. 
 Exercise left for the reader :)
 
 
